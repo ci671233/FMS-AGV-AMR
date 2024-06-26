@@ -1,5 +1,6 @@
 # FMS-AGV-AMR
 Fleet Management System for Autonomous Guided Vehicles (AGVs) and Autonomous Mobile Robots (AMRs). Manages, monitors, and optimizes robot fleets for industrial and commercial applications.
+자율 유도 차량(AGV) 및 자율 이동 로봇(AMR)을 위한 관리 시스템. 산업 및 상업적 응용 분야에서 로봇을 관리, 모니터링 및 최적화
 
 ## 프로젝트 배경
 - 산업 자동화와 물류 혁신이 빠르게 진행됨에 따라 AGV(Automated Guided Vehicle)와 AMR(Autonomous Mobile Robot)는 다양한 산업 분야에서 중요한 요소로 자리 잡고 있음
@@ -46,3 +47,49 @@ Fleet Management System for Autonomous Guided Vehicles (AGVs) and Autonomous Mob
    - 보고서 작성 및 데이터 기반 의사결정 지원
 
 본 프로젝트는 다양한 기능을 통해 로봇의 운영 및 관리의 효율성을 높이고, 사용자에게 편리하고 직관적인 인터페이스를 제공하여 FMS를 통해 최적의 로봇 플릿 관리를 실현하고자 함
+
+## Project Background
+- With the rapid progress of industrial automation and logistics innovation, AGVs (Automated Guided Vehicles) and AMRs (Autonomous Mobile Robots) have become crucial elements in various industries.
+- These robots perform tasks in various environments such as logistics centers, manufacturing plants, and hospitals, making efficient operation and management a significant challenge.
+- The need for developing an FMS (Fleet Management System) for the efficient operation and management of AGVs and AMRs has emerged.
+
+## Project Overview
+This project aims to develop an FMS (Fleet Management System) for the efficient operation and management of AGVs and AMRs. The system provides various functionalities to maximize the overall operational efficiency of robots, including real-time monitoring, task allocation and management, map creation and editing, account management, fault diagnosis and warning systems, and statistical and analytical functions.
+
+### Key Features
+1. **Monitoring**
+   - Real-time location, route, and task points of robots performing tasks
+   - Detailed information and assigned missions of robots
+   - Task lists and history records
+
+2. **Robot Management**
+   - List and detailed information of registered robots
+   - Change robot settings and update parameters
+   - Fine-tune coordinates of robots and nodes
+
+3. **Node Management**
+   - Create and manage continuous actions of nodes
+   - Check the status of each node and add steps
+
+4. **Task Allocation and Management**
+   - Check the status of registered tasks and edit information
+   - Create new tasks and edit task lists
+
+5. **Map Scanning and Editing**
+   - Scan and create maps using multi-sensor SLAM
+   - Add and edit user-created nodes and information on the map
+   - Directly edit, rotate, and merge maps
+
+6. **Account Management**
+   - Manage and edit user account information
+   - Save and update information for each account
+
+7. **Fault Diagnosis and Warning System**
+   - Provide real-time fault diagnosis and alerts
+   - Immediate response to issues occurring with multiple robots
+
+8. **Statistics and Analysis**
+   - Analyze statistics of robot operation data
+   - Generate reports and support data-driven decision making
+
+This project aims to enhance the efficiency of robot operation and management through various functionalities and provide a convenient and intuitive interface for users to achieve optimal fleet management of robots.
