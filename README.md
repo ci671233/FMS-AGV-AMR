@@ -1,6 +1,6 @@
 # FMS-AGV-AMR
-Fleet Management System for Autonomous Guided Vehicles (AGVs) and Autonomous Mobile Robots (AMRs). Manages, monitors, and optimizes robot fleets for industrial and commercial applications.
-자율 유도 차량(AGV) 및 자율 이동 로봇(AMR)을 위한 관리 시스템. 산업 및 상업적 응용 분야에서 로봇을 관리, 모니터링 및 최적화
+자율 유도 차량(AGV) 및 자율 이동 로봇(AMR)을 위한 관리 시스템. 산업 및 상업적 응용 분야에서 로봇을 관리, 모니터링 및 최적화(Fleet Management System for Autonomous Guided Vehicles (AGVs) and Autonomous Mobile Robots (AMRs). Manages, monitors, and optimizes robot fleets for industrial and commercial applications.)
+
 
 ## 프로젝트 배경
 - 산업 자동화와 물류 혁신이 빠르게 진행됨에 따라 AGV(Automated Guided Vehicle)와 AMR(Autonomous Mobile Robot)는 다양한 산업 분야에서 중요한 요소로 자리 잡고 있음
