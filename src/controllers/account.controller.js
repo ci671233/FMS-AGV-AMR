@@ -3,6 +3,7 @@ const jwt = require('../utils/jwt'); // /utils/jwt 로드
 const passwordUtils = require('../utils/password');
 const bcrypt = require('bcryptjs'); // bcryptjs 패키지 로드
 
+
 // 회원가입 함수
 exports.register = async (req, res) => {
     try {
