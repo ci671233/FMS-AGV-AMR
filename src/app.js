@@ -7,7 +7,8 @@ const bodyParser = require('body-parser');  // body-parser 패키지를 로드, 
 const cookieParser = require('cookie-parser'); // cookie-parser 패키지를 로드, 쿠키 파싱
 // Routes 모듈을 로드, 관련 api
 const accountRoutes = require('./routes/account.route');
-// const factoryRoutes = require('./routes/factory.route');
+const factoryRoutes = require('./routes/factory.route');
+const adminRoutes = require('./routes/admin.route');
 
 
 const app = express();
@@ -22,7 +23,8 @@ mongoose.connect(MONGODB_URI)
 
 // '/api/...' 경로로 들어오는 요청은 ...Routes 모듈에서
 app.use('/api/account', accountRoutes);
-// app.use('/api/factory', factoryRoutes);
+app.use('/api/factories', factoryRoutes);
+app.use('/api/admin', adminRoutes);
 
 
 // app 모듈 내보내기
