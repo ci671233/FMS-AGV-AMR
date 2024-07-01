@@ -9,13 +9,13 @@ function Register() {
 
   const handleRegister = async () => {
     try {
-      const response = await axios.post('http://172.30.1.28:8080/api/account/register', {
+      const response = await axios.post('http://172.30.1.28:8080/api/account/register', { // 다음 주소에 post 요청
         email,
         password,
         name,
         phone
       });
-      alert('Registration successful. Waiting for approval.');
+      alert('Registration successful. Waiting for approval.'); // 가입 완료 승인 대기
       console.log(response.data);
     } catch (error) {
       console.error('Registration error:', error.response || error); // 전체 응답 객체를 로그로 출력
