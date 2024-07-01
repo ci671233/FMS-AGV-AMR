@@ -16,7 +16,8 @@ function App() {
       <div>
         <nav>
           <ul>
-            <li><Link to="/register">Register</Link></li>
+            {/* 링크버튼 */}
+            <li><Link to="/register">Register</Link></li> 
             <li><Link to="/login">Login</Link></li>
             <li><Link to="/newaccesstoken">New Access Token</Link></li>
             <li><Link to="/approveaccount">Approve Account</Link></li>
@@ -28,6 +29,7 @@ function App() {
           </ul>
         </nav>
         <Routes>
+          {/* 라우트 설정 */}
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
           <Route path="/newaccesstoken" element={<NewAccessToken />} />
