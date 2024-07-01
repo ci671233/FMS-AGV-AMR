@@ -4,12 +4,31 @@ const Account = require('../models/account.model'); // /models/account.model 로
 // 공장 등록 함수
 exports.createFactory = async (req, res) => {
     try {
-        const { name, location, size, description } = req.body;
-        const newFactory = new Factory({ name, location, size, description });
+        const { name, location, size } = req.body;
+        const createdBy = req.user._id; // 요청한 사용자 ID
+
+        // 사용자 이름 추출
+        const user = await Account.findById(createdBy);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        const createdByName = user.name;
+
+        const newFactory = new Factory({
+            name,
+            location,
+            size,
+            description,
+            createdBy,
+            createdByName,
+            status: 'pending' // 기본 상태를 'pending'으로 설정
+        });
+
         await newFactory.save();
-        res.status(201).send('Factory created successfully');
+        res.status(201).json({ message: 'Factory created. Waiting for approval.', factory: newFactory });
     } catch (error) {
-        res.status(400).send(error.message);
+        console.error('Error creating factory:', error);
+        res.status(500).json({ message: 'Server error' });
     }
 };
 
