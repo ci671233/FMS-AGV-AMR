@@ -3,8 +3,8 @@ const Account = require('../models/account.model'); // /models/account.model 로
 // 계정 승인 관련 함수
 exports.approveAccount = async (req, res) => {
     try {
-        const { accountId } = req.params;   // 요청 쿼리 accountId
-        const account = await Account.findById(accountId); // AccountDB에서 해당 accountId 조회
+        const { accountID } = req.params;   // 요청 쿼리 accountID
+        const account = await Account.findById(accountID); // AccountDB에서 해당 accountId 조회
         if (!account) {
             return res.status(404).send('Account not found');   // 조회 정보 없음
         }
@@ -19,9 +19,9 @@ exports.approveAccount = async (req, res) => {
 // 계정 역할 관련 함수
 exports.assignRole = async (req, res) => {
     try {
-        const { accountId } = req.params; // 요청 쿼리 accountId
+        const { accountID } = req.params; // 요청 쿼리 accountID
         const { role } = req.body;  // 요청 바디 role
-        const account = await Account.findById(accountId);  // AccountDB에서 해당 accountId 조회
+        const account = await Account.findById(accountID);  // AccountDB에서 해당 accountID 조회
         if (!account) {
             return res.status(404).send('Account not found');   // 조회 정보 없음
         }
