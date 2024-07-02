@@ -73,7 +73,7 @@ exports.addUserToFactory = async (req, res) => {
 
         factory.users.push(user._id); // 공장 사용자 목록에 사용자 추가
         user.factories.push(factory._id); // 사용자의 공장 목록에 공장 추가
-
+        
         await factory.save(); // 공장 정보 저장
         await user.save(); // 사용자 정보 저장
 
