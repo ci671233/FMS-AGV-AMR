@@ -11,6 +11,7 @@ const cookieParser = require('cookie-parser'); // cookie-parser 패키지를 로
 const accountRoutes = require('./routes/account.route');
 const adminRoutes = require('./routes/admin.route');
 const factoryRoutes = require('./routes/factory.route');
+const robotRoutes = require('./routes/robot.route');
 
 const app = express();
 // .env 파일의 주소 로드
@@ -40,6 +41,8 @@ mongoose.connect(MONGODB_URI)
 app.use('/api/account', accountRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/factory', factoryRoutes);
+app.use('/api/robot', robotRoutes);
+
 
 // app 모듈 내보내기
 module.exports = app;
