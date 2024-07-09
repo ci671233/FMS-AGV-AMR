@@ -1,35 +1,53 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+import { AuthContext } from '../context/AuthContext';
 
 function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
+  const { setAuthTokens } = useContext(AuthContext);
 
   const handleLogin = async () => {
     try {
-      const response = await axios.post('http://172.30.1.28:8080/api/account/login', { // 다음 주소에 post 요청
-        email,
-        password
-      });
-      localStorage.setItem('token', response.data.token);
-      alert('Login successful'); // 로그인 성공
-      console.log(response.data);
-    } catch (error) {
-      console.error('Login error:', error.response || error); // 전체 응답 객체를 로그로 출력
-      alert(`Login failed: ${error.response?.data?.message || error.message}`); // 로그인 실패
+      const response = await axios.post(`${process.env.REACT_APP_API_URL}/account/login`, { email, password });
+      const { accessToken } = response.data;
+      setAuthTokens(accessToken);
+      alert('Login successful');
+      navigate('/admin');
+    } catch (err) {
+      setError('Invalid email or password');
     }
   };
 
   return (
-    <div>
-      <h2>Login</h2>
-      <input type="text" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
-      <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
-      <button onClick={handleLogin}>Login</button>
+    <div style={{ textAlign: 'center' }}>
+      <h2>Log in</h2>
+      <input
+        type="text"
+        placeholder="Email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        style={{ width: '300px', height: '30px', margin: '10px' }}
+      />
+      <input
+        type="password"
+        placeholder="PWD"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        style={{ width: '300px', height: '30px', margin: '10px' }}
+      />
+      {error && <div style={{ color: 'red' }}>{error}</div>}
+      <button onClick={handleLogin} style={{ width: '100px', height: '40px', marginTop: '20px' }}>Login</button>
+      <div>
+        <a href="/register">register</a>
+      </div>
     </div>
   );
 }
 
 export default Login;
 
-// 로그인 버튼 생성
+

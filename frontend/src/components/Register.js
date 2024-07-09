@@ -6,37 +6,62 @@ function Register() {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
 
   const handleRegister = async () => {
     try {
-      const response = await axios.post('http://172.30.1.28:8080/api/account/register', { // 다음 주소에 post 요청
+      const response = await axios.post(`${process.env.REACT_APP_API_URL}/account/register`, {
         email,
         password,
         name,
-        phone
+        phone,
       });
-      alert('Registration successful. Waiting for approval.'); // 가입 완료 승인 대기
-      console.log(response.data);
-    } catch (error) {
-      console.error('Registration error:', error.response || error); // 전체 응답 객체를 로그로 출력
-      alert(`Registration failed: ${error.response?.data?.message || error.message}`);
+      setMessage(response.data.message);
+      setError('');
+    } catch (err) {
+      setError(err.response.data.message);
+      setMessage('');
     }
   };
 
   return (
-    <div>
+    <div style={{ textAlign: 'center' }}>
       <h2>Register</h2>
-      <input type="text" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
-      <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
-      <input type="text" placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} />
-      <input type="text" placeholder="Phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
-      <button onClick={handleRegister}>Register</button>
+      <input
+        type="text"
+        placeholder="Email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        style={{ width: '300px', height: '30px', margin: '10px' }}
+      />
+      <input
+        type="password"
+        placeholder="Password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        style={{ width: '300px', height: '30px', margin: '10px' }}
+      />
+      <input
+        type="text"
+        placeholder="Name"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        style={{ width: '300px', height: '30px', margin: '10px' }}
+      />
+      <input
+        type="text"
+        placeholder="Phone"
+        value={phone}
+        onChange={(e) => setPhone(e.target.value)}
+        style={{ width: '300px', height: '30px', margin: '10px' }}
+      />
+      {error && <div style={{ color: 'red' }}>{error}</div>}
+      {message && <div style={{ color: 'green' }}>{message}</div>}
+      <button onClick={handleRegister} style={{ width: '100px', height: '40px', marginTop: '20px' }}>Register</button>
     </div>
   );
 }
 
 export default Register;
-
-
-
 

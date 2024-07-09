@@ -1,49 +1,48 @@
 import React from 'react';
-import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
-import Register from './components/Register';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
 import Login from './components/Login';
-import NewAccessToken from './components/NewAccessToken';
-import ApproveAccount from './components/ApproveAccount';
-import AssignRole from './components/AssignRole';
-import CreateFactory from './components/CreateFactory';
-import UpdateFactory from './components/UpdateFactory';
-import AddUserToFactory from './components/AddUserToFactory';
-import AddAdminToFactory from './components/AddAdminToFactory';
+import Register from './components/Register';
+// import AdminDashboard from './components/AdminDashboard';
+// import UserManagement from './components/UserManagement';
+// import FactoryManagement from './components/FactoryManagement';
+// import Settings from './components/Settings';
+// import FactoryList from './components/FactoryList';
+// import FactoryDetails from './components/FactoryDetails';
+// import Monitoring from './components/Monitoring';
+// import Logs from './components/Logs';
+// import Map from './components/Map';
+// import Robot from './components/Robot';
+// import CreateFactory from './components/CreateFactory';
 
 function App() {
   return (
-    <Router>
-      <div>
-        <nav>
-          <ul>
-            {/* 링크버튼 */}
-            <li><Link to="/register">Register</Link></li> 
-            <li><Link to="/login">Login</Link></li>
-            <li><Link to="/newaccesstoken">New Access Token</Link></li>
-            <li><Link to="/approveaccount">Approve Account</Link></li>
-            <li><Link to="/assignrole">Assign Role</Link></li>
-            <li><Link to="/createfactory">Create Factory</Link></li>
-            <li><Link to="/updatefactory">Update Factory</Link></li>
-            <li><Link to="/addusertofactory">Add User to Factory</Link></li>
-            <li><Link to="/addadmintofactory">Add Admin to Factory</Link></li>
-          </ul>
-        </nav>
-        <Routes>
-          {/* 라우트 설정 */}
-          <Route path="/register" element={<Register />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/newaccesstoken" element={<NewAccessToken />} />
-          <Route path="/approveaccount" element={<ApproveAccount />} />
-          <Route path="/assignrole" element={<AssignRole />} />
-          <Route path="/createfactory" element={<CreateFactory />} />
-          <Route path="/updatefactory" element={<UpdateFactory />} />
-          <Route path="/addusertofactory" element={<AddUserToFactory />} />
-          <Route path="/addadmintofactory" element={<AddAdminToFactory />} />
-        </Routes>
-      </div>
-    </Router>
+    <AuthProvider>
+      <Router>
+        <div>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            {/* <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/user-management" element={<UserManagement />} />
+            <Route path="/admin/factory-management" element={<FactoryManagement />} />
+            <Route path="/admin/settings" element={<Settings />} />
+            <Route path="/factories" element={<FactoryList />} />
+            <Route path="/factory/:id" element={<FactoryDetails />} />
+            <Route path="/factory/:id/monitoring" element={<Monitoring />} />
+            <Route path="/factory/:id/logs" element={<Logs />} />
+            <Route path="/factory/:id/map" element={<Map />} />
+            <Route path="/factory/:id/robot" element={<Robot />} />
+            <Route path="/factory/:id/settings" element={<Settings />} />
+            <Route path="/create-factory" element={<CreateFactory />} /> */}
+          </Routes>
+        </div>
+      </Router>
+    </AuthProvider>
   );
 }
 
 export default App;
+
+
 
