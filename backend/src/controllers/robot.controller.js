@@ -1,5 +1,39 @@
-const RobotStatus = require('../models/robotStatus.model');
 const Robot = require('../models/robot.model');
+
+// 로봇 등록 함수
+exports.createRobot = async (req, res) => {
+    try {
+        const { name, model, batteryLevel, location } = req.body;
+
+        const newRobot = new Factory({
+            name,
+            model,
+            batteryLevel,
+            location,
+            status: 'idle' // 기본 상태를 'idle'으로 설정
+        });
+        await newRobot.save();
+
+    } catch (error) {
+        console.error('Error creating robot:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+}
+
+// 로봇 상태조회
+exports.getRobotStatus = async (req, res) => {
+    try {
+        const { robotID } = req.params;
+        const robot = await Robot.findById(robotID);
+        if (!robot) {
+            return res.status(404).json({ message: 'Robot status not found' });
+        }
+        res.status(200).json(robot);
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
 
 // 로봇 이동함수
 exports.moveRobot = async (req, res) => {
@@ -14,24 +48,8 @@ exports.moveRobot = async (req, res) => {
 
         // 로봇의 현재 위치 업데이트
         robot.location = targetLocation;
+        robotStatus.status = 'moving';
         await robot.save();
-
-        // 로봇 상태 업데이트
-        const robotStatus = await RobotStatus.findOne({ robotID });
-        if (robotStatus) {
-            robotStatus.location = targetLocation;
-            robotStatus.status = 'moving';
-            robotStatus.lastUpdated = new Date();
-            await robotStatus.save();
-        } else {
-            await RobotStatus.create({
-                robotID,
-                status: 'moving',
-                batteryLevel: robot.batteryLevel,
-                location: targetLocation,
-                lastUpdated: new Date()
-            });
-        }
 
         res.status(200).json({ message: 'Robot is moving', robot });
     } catch (error) {
@@ -39,16 +57,4 @@ exports.moveRobot = async (req, res) => {
     }
 };
 
-// 로봇 상태조회
-exports.getRobotStatus = async (req, res) => {
-    try {
-        const { robotID } = req.params;
-        const robotStatus = await RobotStatus.findOne({ robotID });
-        if (!robotStatus) {
-            return res.status(404).json({ message: 'Robot status not found' });
-        }
-        res.status(200).json(robotStatus);
-    } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
-    }
-};
+
