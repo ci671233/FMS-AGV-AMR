@@ -25,7 +25,7 @@ app.use(cors({
 }));
 
 // 요청 로그 출력
-app.use((req, res, next) => {
+app.use((req, next) => {
     console.log(`${req.method} ${req.url}`);
     next();
   });
