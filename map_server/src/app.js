@@ -35,6 +35,7 @@ app.use((req, res, next) => {
 });
 
 app.use(bodyParser.json()); // 요청 본문 json으로 파싱
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser()); // 쿠키 파싱
 
 mongoose.connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })

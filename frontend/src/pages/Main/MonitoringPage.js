@@ -10,13 +10,13 @@ function MonitorPage() {
     useEffect(() => {
         const fetchMapData = async () => {
             try {
-                const imageResponse = await axios.get('http://localhost:5557/maps/selected');
+                const imageResponse = await axios.get('http://localhost:5557/map/selected');
                 setMapImage(imageResponse.data);
 
-                const robotsResponse = await axios.get('http://localhost:5559/robots/positions');
+                const robotsResponse = await axios.get('http://localhost:5559/robot/position');
                 setRobots(robotsResponse.data);
 
-                const logsResponse = await axios.get('http://localhost:5561/logs/latest');
+                const logsResponse = await axios.get('http://localhost:5561/log/latest');
                 setLogs(logsResponse.data);
             } catch (error) {
                 console.error('Error fetching map data:', error);

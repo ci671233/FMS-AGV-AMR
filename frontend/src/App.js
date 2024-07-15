@@ -3,10 +3,10 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import LoginPage from './pages/Account/LoginPage';
 import RegisterPage from './pages/Account/RegisterPage';
 import MainPage from './pages/Main/MainPage';
-import MonitorPage from './pages/MonitorPage';
-import MapPage from './pages/MapPage';
-import ControlPage from './pages/ControlPage';
-import LogPage from './pages/LogPage';
+import MonitorPage from './pages/Main/MonitoringPage';
+import MapPage from './pages/Main/MapPage';
+import ControlPage from './pages/Main/ControlPage';
+import LogPage from './pages/Main/LogPage';
 
 function App() {
     return (

@@ -1,6 +1,13 @@
-const fs = require('fs');
-const path = require('path');
+const mongoose = require('mongoose');
+const Grid = require('gridfs-stream');
 const Map = require('../models/map.model');
+const conn = mongoose.connection;
+Grid.mongo = mongoose.mongo;
+let gfs;
+
+conn.once('open', () => {
+    gfs = Grid(conn.db);
+});
 
 exports.getMaps = async (req, res) => {
     try {
@@ -23,22 +30,69 @@ exports.getMapById = async (req, res) => {
     }
 };
 
+exports.uploadMap = async (req, res) => {
+    try {
+        const { name, meta } = req.body;
+        const file = req.file;
+
+        if (!file) {
+            return res.status(400).json({ message: 'No file uploaded' });
+        }
+
+        const writeStream = gfs.createWriteStream({
+            filename: file.originalname,
+            content_type: file.mimetype
+        });
+
+        writeStream.on('close', async (file) => {
+            const map = new Map({
+                name,
+                meta: JSON.parse(meta),
+                fileId: file._id
+            });
+
+            await map.save();
+            res.status(201).json({ message: 'Map uploaded successfully', map });
+        });
+
+        writeStream.write(file.buffer);
+        writeStream.end();
+    } catch (error) {
+        res.status(500).json({ message: 'Error uploading map', error: error.message });
+    }
+};
+
 exports.getSelectedMap = async (req, res) => {
     try {
-        const selectedMapId = req.user.selectedMapId; // 사용자가 선택한 맵 ID
+        const selectedMapId = req.user.selectedMapId;
         const map = await Map.findById(selectedMapId);
         if (!map) {
             return res.status(404).json({ message: 'Selected map not found' });
         }
-        const mapPath = path.join(__dirname, '../../maps', `${map.fileName}.pgm`);
-        fs.readFile(mapPath, (err, data) => {
-            if (err) {
-                return res.status(500).json({ message: 'Error reading map image', error: err.message });
+
+        gfs.files.findOne({ _id: mongoose.Types.ObjectId(map.fileId) }, (err, file) => {
+            if (err || !file) {
+                return res.status(404).json({ message: 'Map file not found' });
             }
-            const base64Image = Buffer.from(data).toString('base64');
-            res.json({ mapId: selectedMapId, mapImage: base64Image, mapMeta: map.meta });
+
+            const readStream = gfs.createReadStream({ _id: file._id });
+            let data = '';
+
+            readStream.on('data', (chunk) => {
+                data += chunk;
+            });
+
+            readStream.on('end', () => {
+                const base64Image = Buffer.from(data).toString('base64');
+                res.json({ mapId: selectedMapId, mapImage: base64Image, mapMeta: map.meta });
+            });
+
+            readStream.on('error', (err) => {
+                res.status(500).json({ message: 'Error reading map file', error: err.message });
+            });
         });
     } catch (error) {
         res.status(500).json({ message: 'Error fetching selected map', error: error.message });
     }
 };
+
