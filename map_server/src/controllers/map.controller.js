@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const { GridFSBucket } = require('mongodb');
+const sharp = require('sharp');
 const Map = require('../models/map.model');
 const conn = mongoose.connection;
 
@@ -34,6 +35,10 @@ exports.uploadMap = async (req, res) => {
     const { name, description } = req.body;
     const file = req.file;
 
+    console.log('Uploading file:', file);
+    console.log('Map name:', name);
+    console.log('Map description:', description);
+
     if (!file) {
       return res.status(400).json({ message: 'No file uploaded' });
     }
@@ -44,13 +49,17 @@ exports.uploadMap = async (req, res) => {
 
     uploadStream.on('finish', async (uploadedFile) => {
       try {
+        console.log('File uploaded to GridFS:', uploadedFile);
+
         const map = new Map({
           name,
           description,
-          fileId: uploadedFile._id
+          fileId: uploadedFile._id,
+          fileName: file.originalname  // 파일 이름을 저장
         });
 
         await map.save();
+        console.log('Map saved to database:', map);
         res.status(201).json({ message: 'Map uploaded successfully', map });
       } catch (error) {
         console.error('Error saving map:', error);
@@ -85,9 +94,13 @@ exports.getSelectedMap = async (req, res) => {
       data.push(chunk);
     });
 
-    downloadStream.on('end', () => {
+    downloadStream.on('end', async () => {
       const fileBuffer = Buffer.concat(data);
-      res.json({ mapId: selectedMapId, mapImage: fileBuffer.toString('base64'), mapDescription: map.description });
+
+      // Convert .pgm to .png using sharp
+      const pngBuffer = await sharp(fileBuffer).png().toBuffer();
+
+      res.json({ mapId: selectedMapId, mapImage: pngBuffer.toString('base64'), mapDescription: map.description });
     });
 
     downloadStream.on('error', (error) => {
@@ -106,22 +119,27 @@ exports.downloadMap = async (req, res) => {
       return res.status(404).json({ message: 'Map not found' });
     }
 
+    console.log('Downloading map:', map);
+
     const downloadStream = gfs.openDownloadStream(mongoose.Types.ObjectId(map.fileId));
 
     downloadStream.on('error', (error) => {
       res.status(500).json({ message: 'Error reading map file', error: error.message });
     });
 
-    res.set('Content-Type', 'application/octet-stream');
-    res.set('Content-Disposition', `attachment; filename=${map.name}`);
+    const originalExtension = map.fileName.split('.').pop();
+    const downloadFileName = `${map.name}.${originalExtension}`;
+
+    console.log('Original filename:', map.fileName);
+    console.log('Download filename:', downloadFileName);
+
+    res.set('Content-Type', map.contentType || 'application/octet-stream');
+    res.set('Content-Disposition', `attachment; filename="${downloadFileName}"`); // 파일 이름과 확장자 설정
     downloadStream.pipe(res);
   } catch (error) {
     res.status(500).json({ message: 'Error downloading map', error: error.message });
   }
 };
-
-
-  
 
 
 

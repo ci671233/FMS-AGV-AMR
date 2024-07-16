@@ -35,7 +35,7 @@ function MapPage() {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('name', name);
-    formData.append('description', description); // Description 정보를 문자열로 전송
+    formData.append('description', description);
 
     try {
       await axios.post('http://localhost:5557/map/upload', formData, {
@@ -56,11 +56,22 @@ function MapPage() {
       });
 
       const url = window.URL.createObjectURL(new Blob([response.data]));
+      const contentDisposition = response.headers['content-disposition'];
+      let fileName = selectedMap.fileName;
+
+      if (contentDisposition) {
+        const fileNameMatch = contentDisposition.match(/filename="(.+)"/);
+        if (fileNameMatch && fileNameMatch.length === 2) {
+          fileName = fileNameMatch[1];
+        }
+      }
+
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', selectedMap.name); // 파일 이름 설정
+      link.setAttribute('download', fileName); // 파일 이름 설정
       document.body.appendChild(link);
       link.click();
+      link.parentNode.removeChild(link);
     } catch (error) {
       console.error('Error downloading map:', error);
     }
@@ -109,3 +120,4 @@ function MapPage() {
 }
 
 export default MapPage;
+
