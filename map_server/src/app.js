@@ -1,10 +1,10 @@
 // dotenv 패키지를 로드하고 .env 파일의 환경 변수를 process.env 객체에 로드
 require('dotenv').config();
 
-const express = require('express');     // express 패키지를 로드, 애플리케이션 생성
-const mongoose = require('mongoose');   // mongoose 패키지를 로드
-const cors = require('cors');           // Cors 패키지 로드
-const bodyParser = require('body-parser');  // body-parser 패키지를 로드, 요청 본문을 파싱
+const express = require('express'); // express 패키지를 로드, 애플리케이션 생성
+const mongoose = require('mongoose'); // mongoose 패키지를 로드
+const cors = require('cors'); // Cors 패키지 로드
+const bodyParser = require('body-parser'); // body-parser 패키지를 로드, 요청 본문을 파싱
 const cookieParser = require('cookie-parser'); // cookie-parser 패키지를 로드, 쿠키 파싱
 
 // Routes 모듈을 로드, 관련 api
@@ -39,8 +39,8 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser()); // 쿠키 파싱
 
 mongoose.connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
-    .then(() => console.log('MongoDB connected'))   // 연결이 성공하면 콘솔에 메시지를 출력합니다.
-    .catch(err => console.log(err));    // 연결이 실패하면 콘솔에 오류 메시지를 출력합니다.
+  .then(() => console.log('MongoDB connected')) // 연결이 성공하면 콘솔에 메시지를 출력합니다.
+  .catch(err => console.log(err)); // 연결이 실패하면 콘솔에 오류 메시지를 출력합니다.
 
 // '/map/...' 경로로 들어오는 요청은 ...Routes 모듈에서
 app.use('/map', mapRoutes);
