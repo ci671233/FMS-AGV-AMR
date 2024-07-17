@@ -87,6 +87,7 @@ exports.uploadMap = async (req, res) => {
   }
 };
 
+
 exports.getMaps = async (req, res) => {
   try {
     const maps = await Map.find();

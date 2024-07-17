@@ -2,7 +2,7 @@ const gm = require('gm').subClass({ imageMagick: true });
 
 async function convertPgmToPng(pgmBuffer) {
   return new Promise((resolve, reject) => {
-    gm(pgmBuffer)
+    gm(pgmBuffer, 'image.pgm')
       .setFormat('png')
       .toBuffer((err, buffer) => {
         if (err) {
@@ -15,4 +15,5 @@ async function convertPgmToPng(pgmBuffer) {
 }
 
 module.exports = convertPgmToPng;
+
 
