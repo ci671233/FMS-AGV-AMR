@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Navbar from '../../components/Common/Navbar';
 import axios from 'axios';
 
 function MapCreatePage() {
@@ -36,6 +37,9 @@ function MapCreatePage() {
   return (
     <div>
       <h2>Map Create</h2>
+      <div style={{ display: 'flex' }}>
+                <Navbar />
+            </div>
       <form onSubmit={handleUpload}>
         <input
           type="text"

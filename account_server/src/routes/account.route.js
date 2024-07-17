@@ -10,6 +10,8 @@ router.post('/login', accountController.login);
 // logout함수
 router.post('/logout', accountController.logout); 
 // 사용자 정보 함수
-router.get('/userinfo', accountController.getUserInfo);
+router.get('/userinfo', auth.authenticate, accountController.getUserInfo);
+// 사용자 정보를 가져오는 라우트
+router.get('/user/:id', auth.authenticate, accountController.getUserById);
 
 module.exports = router;

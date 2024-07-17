@@ -7,6 +7,7 @@ const accountSchema = new mongoose.Schema({
     name: { type: String, required: true }, // 사용자명
     phone: { type: String, required: true }, // 휴대전화 번호
     status: { type: String, enum: ['pending', 'active'], default: 'pending' }, // 계정 상태 대기, 활성화 (기본 값 대기)
+    selectedMapId: { type: mongoose.Schema.Types.ObjectId, ref: 'Map' }, // 선택된 맵 ID 필드 추가
     createdAt: { type: Date, default: Date.now }, // 계정 생성 시간
 });
 
