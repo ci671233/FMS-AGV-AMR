@@ -10,6 +10,7 @@ const cookieParser = require('cookie-parser'); // cookie-parser 패키지를 로
 // Routes 모듈을 로드, 관련 api
 const mapRoutes = require('./routes/map.route');
 
+
 const app = express();
 // .env 파일의 주소 로드
 const MONGODB_URI = process.env.MONGODB_URI;

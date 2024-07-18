@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const axios = require('axios');
 const { GridFSBucket } = require('mongodb');
+const jwt = require('jsonwebtoken');
 const Map = require('../models/map.model');
 const convertPgmToPng = require('../utils/convertPgmToPng');
 const conn = mongoose.connection;
@@ -109,51 +110,6 @@ exports.getMapById = async (req, res) => {
   }
 };
 
-// selectMapForMonitoring 함수 수정
-exports.selectMapForMonitoring = async (req, res) => {
-  try {
-    const { mapId } = req.body;
-    const userId = req.user.id; // 인증된 사용자 ID 가져오기 (미들웨어에서 설정)
-
-    // account_server에서 사용자 정보를 가져오기
-    const userResponse = await axios.get(`http://localhost:5555/account/user/${userId}`);
-    const user = userResponse.data;
-
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    user.selectedMapId = mapId;
-    await axios.put(`http://localhost:5555/account/user/${userId}`, { selectedMapId: mapId });
-
-    res.status(200).json({ message: 'Map selected for monitoring successfully' });
-  } catch (error) {
-    console.error('Error selecting map for monitoring:', error);
-    res.status(500).json({ message: 'Error selecting map for monitoring', error: error.message });
-  }
-};
-
-// getSelectedMap 함수 수정
-exports.getSelectedMap = async (req, res) => {
-  try {
-    const userId = req.user.id; // 인증된 사용자 ID 가져오기 (미들웨어에서 설정)
-
-    // account_server에서 사용자 정보를 가져오기
-    const userResponse = await axios.get(`http://localhost:5555/account/user/${userId}`);
-    const user = userResponse.data;
-
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    const selectedMapId = user.selectedMapId;
-
-    res.status(200).json({ selectedMapId });
-  } catch (error) {
-    console.error('Error fetching selected map:', error);
-    res.status(500).json({ message: 'Error fetching selected map', error: error.message });
-  }
-};
 
 exports.getPngMapById = async (req, res) => {
   try {
@@ -178,3 +134,55 @@ exports.getPngMapById = async (req, res) => {
   }
 };
 
+// selectMapForMonitoring 함수
+exports.selectMapForMonitoring = async (req, res) => {
+  try {
+    const { mapId, userId } = req.body;
+    if (!userId) {
+      return res.status(400).json({ message: 'User ID is missing in request.' });
+    }
+
+    const token = req.headers.authorization.split(' ')[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
+    if (decoded.id !== userId) {
+      return res.status(401).json({ message: 'Unauthorized user.' });
+    }
+
+    // account_server에서 사용자 정보 확인 및 업데이트
+    const response = await axios.put(`http://localhost:5555/account/user/${userId}`, { selectedMapId: mapId }, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    if (response.status !== 200) {
+      return res.status(response.status).json({ message: 'Error updating user with selected map.' });
+    }
+
+    res.status(200).json({ message: 'Map selected for monitoring successfully.' });
+  } catch (error) {
+    console.error('Error selecting map for monitoring:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+
+
+
+
+
+exports.getSelectedMap = async (req, res) => {
+  try {
+    const userId = req.user.id; // 인증된 사용자 ID 가져오기 (미들웨어에서 설정)
+    const response = await axios.get(`http://localhost:5555/account/user/${userId}`);
+    const user = response.data;
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const selectedMapId = user.selectedMapId;
+
+    res.status(200).json({ selectedMapId });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching selected map', error: error.message });
+  }
+};

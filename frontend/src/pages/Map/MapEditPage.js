@@ -11,7 +11,12 @@ function MapEditPage() {
   useEffect(() => {
     const fetchMaps = async () => {
       try {
-        const response = await axios.get('http://localhost:5557/map');
+        const token = localStorage.getItem('token'); // 로그인 시 저장한 토큰을 가져옴
+        const response = await axios.get('http://localhost:5557/map', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
         setMaps(response.data);
       } catch (error) {
         console.error('Error fetching maps:', error);
@@ -24,7 +29,11 @@ function MapEditPage() {
   const handleMapSelect = async (map) => {
     setSelectedMap(map);
     try {
+      const token = localStorage.getItem('token'); // Add token to the request
       const response = await axios.get(`http://localhost:5557/map/png/${map._id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
         responseType: 'arraybuffer'
       });
       const base64Image = Buffer.from(response.data, 'binary').toString('base64');
@@ -33,12 +42,20 @@ function MapEditPage() {
       console.error('Error fetching map image:', error);
     }
   };
+  
 
   const handleMonitoringMapSelect = async (mapId) => {
-    const token = localStorage.getItem('token'); // 토큰 가져오기
     try {
-      await axios.post('http://localhost:5557/map/select', { mapId }, {
-        headers: { Authorization: `Bearer ${token}` } // 인증 헤더 추가
+      const token = localStorage.getItem('token'); // 로그인 시 저장한 토큰을 가져옴
+      if (!token) {
+        console.error('No token found in localStorage');
+        return;
+      }
+      const userId = JSON.parse(atob(token.split('.')[1])).id; // 토큰에서 사용자 ID 추출
+      await axios.post('http://localhost:5557/map/select', { mapId, userId }, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
       });
       setMonitoringMapId(mapId);
       alert('Map selected for monitoring successfully');
@@ -46,6 +63,7 @@ function MapEditPage() {
       console.error('Error selecting map for monitoring:', error);
     }
   };
+  
 
   return (
     <div>

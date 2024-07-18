@@ -1,22 +1,22 @@
-const { verifyToken } = require('../utils/jwt');
+const jwt = require('jsonwebtoken');
+const Account = require('../models/account.model');
 
 exports.authenticate = async (req, res, next) => {
-    try {
-        const token = req.headers.authorization?.split(' ')[1];
+  const token = req.headers['authorization']?.split(' ')[1];
 
-        if (!token) {
-            return res.status(401).json({ message: 'Authentication token is required' });
-        }
+  if (!token) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
 
-        const payload = verifyToken(token);
-        if (!payload) {
-            return res.status(401).json({ message: 'Invalid token' });
-        }
-
-        req.user = payload;
-        next();
-
-    } catch (error) {
-        res.status(401).send({ error: 'Please authenticate.' });
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
+    req.user = await Account.findById(decoded.id);
+    if (!req.user) {
+      return res.status(401).json({ message: 'Unauthorized' });
     }
+    next();
+  } catch (error) {
+    res.status(401).json({ message: 'Unauthorized' });
+  }
 };
+

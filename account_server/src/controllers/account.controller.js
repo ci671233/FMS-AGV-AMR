@@ -89,13 +89,31 @@ exports.getUserInfo = async (req, res) => {
 
 exports.getUserById = async (req, res) => {
     try {
-      const userId = req.params.id;
-      const user = await User.findById(userId);
+      const user = await Account.findById(req.params.id).select('-password'); // 비밀번호 제외
       if (!user) {
         return res.status(404).json({ message: 'User not found' });
       }
-      res.json(user);
+      res.status(200).json(user);
     } catch (error) {
-      res.status(500).json({ message: 'Error fetching user', error: error.message });
+      console.error('Error fetching user:', error);
+      res.status(500).json({ message: 'Error fetching user' });
+    }
+  };
+
+  exports.updateUser = async (req, res) => {
+    try {
+      const userId = req.params.id;
+      const updateData = req.body;
+  
+      const updatedUser = await Account.findByIdAndUpdate(userId, updateData, { new: true });
+  
+      if (!updatedUser) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+  
+      res.status(200).json({ message: 'User updated successfully', user: updatedUser });
+    } catch (error) {
+      console.error('Error updating user:', error);
+      res.status(500).json({ message: 'Error updating user', error: error.message });
     }
   };
