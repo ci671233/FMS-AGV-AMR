@@ -42,7 +42,7 @@ mongoose.connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true 
     .catch(err => console.log(err));    // 연결이 실패하면 콘솔에 오류 메시지를 출력합니다.
 
 // '/account/...' 경로로 들어오는 요청은 ...Routes 모듈에서
-app.use('/monitor', accountRoutes);
+app.use('/monitoring', accountRoutes);
 
 // 오류 핸들러
 app.use((err, req, res, next) => {

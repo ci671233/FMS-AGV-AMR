@@ -1,30 +1,41 @@
 const axios = require('axios');
+const jwt = require('jsonwebtoken');
 
 exports.getMonitoringData = async (req, res) => {
     try {
-        const userId = req.user.id;
+        const authHeader = req.headers['authorization'];
+        const token = authHeader.split(' ')[1];
+        const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
+        const userId = decoded.id;
+
+        console.log('Fetching monitoring data for user:', userId);
 
         // 선택된 맵 가져오기
-        const mapResponse = await axios.get(`http://localhost:5557/map/selected`, {
-            headers: { 'Authorization': req.headers.authorization }
+        const mapResponse = await axios.get(`http://localhost:5557/map/selected/${userId}`, {
+            headers: { Authorization: authHeader }
         });
-        const { mapId, mapImage, mapMeta } = mapResponse.data;
+        const mapImage = mapResponse.data;
+        console.log('Map image data:', mapImage);
 
         // 로봇 위치 가져오기
-        const robotsResponse = await axios.get(`http://localhost:5559/robot/positions`, {
-            params: { mapId },
-            headers: { 'Authorization': req.headers.authorization }
+        const robotsResponse = await axios.get(`http://localhost:5559/robot/positions/${userId}`, {
+            headers: { Authorization: authHeader }
         });
-        const robots = robotsResponse.data;
+        const robot_position = robotsResponse.data;
+        console.log('Robot positions data:', robot_position);
 
         // 최신 로그 가져오기
-        const logsResponse = await axios.get(`http://localhost:5561/log/latest`, {
-            headers: { 'Authorization': req.headers.authorization }
+        const logsResponse = await axios.get('http://localhost:5561/log/latest', {
+            headers: { Authorization: authHeader }
         });
-        const logs = logsResponse.data;
-
-        res.json({ mapImage, robots, logs });
+        const log_top = logsResponse.data;
+        console.log('Logs data:', log_top);
+        
+        res.json({ mapImage, robot_position, log_top });
     } catch (error) {
+        console.error('Error fetching monitoring data:', error.message);
         res.status(500).json({ message: 'Error fetching monitoring data', error: error.message });
     }
 };
+
+

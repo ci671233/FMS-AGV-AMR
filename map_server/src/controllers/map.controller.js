@@ -167,22 +167,56 @@ exports.selectMapForMonitoring = async (req, res) => {
 
 
 
-
-
-exports.getSelectedMap = async (req, res) => {
+exports.getSelectedMapImage = async (req, res) => {
   try {
-    const userId = req.user.id; // 인증된 사용자 ID 가져오기 (미들웨어에서 설정)
-    const response = await axios.get(`http://localhost:5555/account/user/${userId}`);
-    const user = response.data;
-
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+    const userId = req.params.id;
+    const token = req.headers.authorization.split(' ')[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
+    if (decoded.id !== userId) {
+      return res.status(401).json({ message: 'Unauthorized user.' });
     }
 
-    const selectedMapId = user.selectedMapId;
+    // account_server에서 사용자 정보 확인
+    const response = await axios.get(`http://localhost:5555/account/user/${userId}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
 
-    res.status(200).json({ selectedMapId });
+    if (response.status !== 200) {
+      return res.status(response.status).json({ message: 'Error fetching user data.' });
+    }
+
+    const user = response.data;
+    const MapId = user.selectedMapId;
+
+    if (!MapId) {
+      return res.status(404).json({ message: 'No map selected for monitoring.' });
+    }
+
+    // Map 정보 가져오기
+    const map = await Map.findById(MapId);
+    if (!map) {
+      return res.status(404).json({ message: 'Map not found' });
+    }
+
+    // Map 이미지 가져오기
+    const downloadStream = gfs.openDownloadStream(mongoose.Types.ObjectId(map.pngFileId));
+
+    let imageData = '';
+    downloadStream.on('data', (chunk) => {
+      imageData += chunk.toString('base64');
+    });
+
+    downloadStream.on('end', () => {
+      res.status(200).json({ mapImage: `data:image/png;base64,${imageData}` });
+    });
+
+    downloadStream.on('error', (error) => {
+      console.error('Error reading map file:', error);
+      res.status(500).json({ message: 'Error reading map file', error: error.message });
+    });
+
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching selected map', error: error.message });
+    console.error('Error fetching selected map image:', error);
+    res.status(500).json({ message: 'Error fetching selected map image', error: error.message });
   }
 };

@@ -12,7 +12,7 @@ router.get('/', auth, mapController.getMaps);
 router.get('/:id', auth, mapController.getMapById);
 router.get('/png/:id', auth, mapController.getPngMapById);
 router.post('/select', auth, mapController.selectMapForMonitoring);
-router.get('/selected', auth, mapController.getSelectedMap);
+router.get('/selected/:id', auth, mapController.getSelectedMapImage);
 
 module.exports = router;
 
