@@ -7,8 +7,7 @@ import axios from 'axios';
 function MapCreatePage() {
     const [robots, setRobots] = useState([]);
     const [selectedRobot, setSelectedRobot] = useState('');
-    const ws = new WebSocket('ws://localhost:3000'); // WebSocket 서버 주소
-  
+
     useEffect(() => {
         // 페이지 로드 시 로봇 목록을 가져옴
         const fetchRobots = async () => {
@@ -28,49 +27,52 @@ function MapCreatePage() {
         fetchRobots();
 
         // WebSocket 연결 설정
+        const ws = new WebSocket('ws://localhost:3000'); // WebSocket 서버 주소
         ws.onopen = () => {
             console.log('WebSocket 연결이 설정되었습니다.');
         };
-    }, []); // 빈 배열을 전달하여 컴포넌트가 처음 렌더링될 때만 실행되도록 함
+
+        const handleKeyDown = (e) => {
+            const velocityCommands = {
+                w: { linear: 0.1, angular: 0 },
+                a: { linear: 0, angular: 0.1 },
+                s: { linear: -0.1, angular: 0 },
+                d: { linear: 0, angular: -0.1 },
+                x: { linear: 0, angular: 0 }
+            };
+            if (velocityCommands[e.key]) {
+                ws.send(JSON.stringify({
+                    robot_id: selectedRobot,
+                    velocity: velocityCommands[e.key]
+                }));
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            ws.close(); // 컴포넌트 언마운트 시 WebSocket 연결 해제
+        };
+    }, [selectedRobot]); // selectedRobot이 변경될 때마다 실행되도록 설정
 
     // 서버에 명령을 전송하는 함수
     const sendCommand = (command) => {
-        fetch('/send_command', {
+        const token = localStorage.getItem('token'); // 로그인 시 저장한 토큰을 가져옴
+        fetch('http://localhost:5557/robot/send_command', { // 절대 경로 사용
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}` // 토큰을 헤더에 추가
             },
             body: JSON.stringify({
                 robot_id: selectedRobot,
                 command: command
             })
         }).then(response => response.text())
-            .then(data => alert(data));
+            .then(data => alert(data))
+            .catch(error => console.error('Error sending command:', error));
     };
-
-    // 키 입력을 처리하여 로봇을 제어하는 함수
-    const handleKeyDown = (e) => {
-        const velocityCommands = {
-            w: { linear: 0.1, angular: 0 },
-            a: { linear: 0, angular: 0.1 },
-            s: { linear: -0.1, angular: 0 },
-            d: { linear: 0, angular: -0.1 },
-            x: { linear: 0, angular: 0 }
-        };
-        if (velocityCommands[e.key]) {
-            ws.send(JSON.stringify({
-                robot_id: selectedRobot,
-                velocity: velocityCommands[e.key]
-            }));
-        }
-    };
-
-    useEffect(() => {
-        window.addEventListener('keydown', handleKeyDown);
-        return () => {
-            window.removeEventListener('keydown', handleKeyDown);
-        };
-    }, [selectedRobot]); // selectedRobot이 변경될 때마다 실행되도록 설정
+    
 
     return (
         <div>
@@ -81,7 +83,7 @@ function MapCreatePage() {
             <div style={{ display: 'flex' }}>
                 <Navbar />
             </div>
-            <h2>Turtlebot3 SLAM Control</h2>
+            <h2>SLAM Control</h2>
             <div>
                 <label>로봇 선택:</label>
                 <select onChange={(e) => setSelectedRobot(e.target.value)} value={selectedRobot}>
@@ -100,4 +102,5 @@ function MapCreatePage() {
 };
 
 export default MapCreatePage;
+
 
