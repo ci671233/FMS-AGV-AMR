@@ -6,11 +6,15 @@ const mongoose = require('mongoose');   // mongoose 패키지를 로드
 const cors = require('cors');           // Cors 패키지 로드
 const bodyParser = require('body-parser');  // body-parser 패키지를 로드, 요청 본문을 파싱
 const cookieParser = require('cookie-parser'); // cookie-parser 패키지를 로드, 쿠키 파싱
+const http = require('http'); // 추가: HTTP 서버 생성에 필요
+const socketIo = require('socket.io'); // 추가: Socket.IO 모듈
 
 // Routes 모듈을 로드, 관련 api
 const robotRoutes = require('./routes/robot.route');
 
 const app = express();
+const server = http.createServer(app); // 추가: HTTP 서버 생성
+const io = socketIo(server); // 추가: Socket.IO 서버 생성
 // .env 파일의 주소 로드
 const MONGODB_URI = process.env.MONGODB_URI;
 const allowedOrigins = process.env.FRONT_URI.split(',');
@@ -51,5 +55,17 @@ app.use((err, req, res, next) => {
   res.status(500).send('Something broke!');
 });
 
-// app 모듈 내보내기
-module.exports = app;
+// Socket.IO 이벤트 처리
+io.on('connection', (socket) => {
+  console.log('New client connected');
+
+  socket.on('disconnect', () => {
+    console.log('Client disconnected');
+  });
+
+  socket.on('signal', (data) => {
+    // WebRTC 시그널링 처리
+  });
+});
+
+module.exports = { app, server }; // 서버도 내보냅니다.

@@ -1,9 +1,10 @@
 const mongoose = require('mongoose');
-const rosnodejs = require('rosnodejs');
+const axios = require('axios');
 const Robot = require('../models/robot.model');
-const WebSocket = require('ws');
+const rosnodejs = require('rosnodejs');
 const ROSLIB = require('roslib');
-const WS_PORT = process.env.WS_PORT;
+const WebSocket = require('ws');
+const { exec } = require('child_process');
 
 rosnodejs.initNode('/web_server_node')
   .then(() => {
@@ -44,12 +45,32 @@ exports.sendCommand = async (req, res) => {
     }
 
     if (command === 'slam') {
-      const nh = rosnodejs.nh;
-      const serviceClient = nh.serviceClient('/start_slam', 'std_srvs/Trigger');
-      await serviceClient.waitForService();
-      const resp = await serviceClient.call({});
-      console.log('SLAM started: ', resp);
-      res.send(resp);
+      // 터틀봇 라즈베리파이에서 터틀봇 브링업 실행
+      exec('ssh -X ubuntu@<라즈베리파이_IP> "~/start_turtlebot3.sh"', (error, stdout, stderr) => {
+        if (error) {
+          console.error(`Error: ${error.message}`);
+          return res.status(500).send('Failed to start Turtlebot bringup');
+        }
+        if (stderr) {
+          console.error(`stderr: ${stderr}`);
+          return res.status(500).send('Failed to start Turtlebot bringup');
+        }
+        console.log(`stdout: ${stdout}`);
+        
+        // 원격 PC에서 Rviz 및 Teleop 실행
+        exec('~/start_remote.sh', (error, stdout, stderr) => {
+          if (error) {
+            console.error(`Error: ${error.message}`);
+            return res.status(500).send('Failed to start Rviz and Teleop');
+          }
+          if (stderr) {
+            console.error(`stderr: ${stderr}`);
+            return res.status(500).send('Failed to start Rviz and Teleop');
+          }
+          console.log(`stdout: ${stdout}`);
+          res.send('SLAM started successfully');
+        });
+      });
     } else {
       res.status(400).send('Unknown command');
     }
@@ -60,7 +81,7 @@ exports.sendCommand = async (req, res) => {
 };
 
 // WebSocket 서버 설정
-const wss = new WebSocket.Server({ port: WS_PORT });
+const wss = new WebSocket.Server({ port: process.env.WS_PORT });
 
 wss.on('connection', (ws) => {
   ws.on('message', async (message) => {
@@ -89,18 +110,3 @@ wss.on('connection', (ws) => {
     }
   });
 });
-
-
-
-// exports.sendCommand = async (req, res) => {
-//   const { robot_id, command } = req.body;
-//   try {
-//     const robot = await Robot.findById(robot_id);
-//     const response = await axios.post(`${TURTLEBOT_SERVER_URL}/robot/send_command`, { robot_ip: robot.ip, command });
-//     res.send(response.data);
-//   } catch (error) {
-//     console.error(`Error: ${error}`);
-//     res.status(500).send('Failed to send command');
-//   }
-// };
-  
