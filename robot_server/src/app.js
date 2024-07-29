@@ -14,7 +14,7 @@ const app = express();
 // .env 파일의 주소 로드
 const MONGODB_URI = process.env.MONGODB_URI;
 const allowedOrigins = process.env.FRONT_URI.split(',');
-const ROBOT_SERVER_URL = process.env.ROBOT_SERVER_URL;
+
 
 // CORS 설정
 app.use(cors({

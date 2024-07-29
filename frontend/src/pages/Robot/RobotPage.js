@@ -11,10 +11,11 @@ function RobotPage() {
 
     const handleUpload = async (e) => {
         e.preventDefault();
-        const formData = new FormData();
-        formData.append('name', name);
-        formData.append('ip', ip);
-        formData.append('model', model);
+        const formData = {
+            name: name,
+            ip: ip,
+            model: model
+        };
 
         const token = localStorage.getItem('token'); // 로그인 시 저장한 토큰을 가져옴
 
@@ -24,16 +25,16 @@ function RobotPage() {
         }
 
         try {
-            await axios.post('http://localhost:5559/robot/register_robot', formData, {
+            await axios.post('http://172.30.1.40:5559/robot/register_robot', formData, {
                 headers: { 
-                    'Content-Type': 'multipart/form-data',
+                    'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}` 
-                 }
-                
+                }
             });
-            alert('Robot register successfully');
+            alert('Robot registered successfully');
         } catch (error) {
-        console.error('Error rigister robot:', error);
+            console.error('Error registering robot:', error);
+            alert('Failed to register robot');
         }
     };
 
@@ -44,30 +45,30 @@ function RobotPage() {
                 <LogoutButton />
           </header>
           <div style={{ display: 'flex' }}>
-                    <Navbar />
-                </div>
+                <Navbar />
+          </div>
           <h2>Robot Register</h2>
           <form onSubmit={handleUpload}>
             <input
-            type="text"
-            placeholder="Robot Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
+                type="text"
+                placeholder="Robot Name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
             />
             <input
-            type="text"
-            placeholder="Robot IP"
-            value={ip}
-            onChange={(e) => setIp(e.target.value)}
-            required
+                type="text"
+                placeholder="Robot IP"
+                value={ip}
+                onChange={(e) => setIp(e.target.value)}
+                required
             />
             <input
-            type="text"
-            placeholder="Robot Model"
-            value={model}
-            onChange={(e) => setModel(e.target.value)}
-            required
+                type="text"
+                placeholder="Robot Model"
+                value={model}
+                onChange={(e) => setModel(e.target.value)}
+                required
             />
             <button type="submit">Register Robot</button>
           </form>

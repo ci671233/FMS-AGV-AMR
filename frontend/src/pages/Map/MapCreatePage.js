@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'; // useEffect 추가
+import React, { useState, useEffect } from 'react';
 import Navbar from '../../components/Common/Navbar';
 import LogoutButton from '../../components/Common/LogoutButton';
 import UserInfo from '../../components/Common/UserInfo';
@@ -13,12 +13,12 @@ function MapCreatePage() {
         const fetchRobots = async () => {
             try {
                 const token = localStorage.getItem('token'); // 로그인 시 저장한 토큰을 가져옴
-                const response = await axios.get('http://localhost:5557/robots', {
+                const response = await axios.get('http://172.30.1.40:5559/robot/robots', {
                     headers: {
                         Authorization: `Bearer ${token}`
                     }
                 });
-                setRobots(response.data); // setMaps 대신 setRobots 사용
+                setRobots(response.data);
             } catch (error) {
                 console.error('Error fetching robots:', error);
             }
@@ -27,7 +27,7 @@ function MapCreatePage() {
         fetchRobots();
 
         // WebSocket 연결 설정
-        const ws = new WebSocket('ws://localhost:3000'); // WebSocket 서버 주소
+        const ws = new WebSocket(`ws://${window.location.hostname}:8080`); // WebSocket 서버 주소
         ws.onopen = () => {
             console.log('WebSocket 연결이 설정되었습니다.');
         };
@@ -38,9 +38,9 @@ function MapCreatePage() {
                 a: { linear: 0, angular: 0.1 },
                 s: { linear: -0.1, angular: 0 },
                 d: { linear: 0, angular: -0.1 },
-                x: { linear: 0, angular: 0 }
+                ' ': { linear: 0, angular: 0 } // space 키로 변경
             };
-            if (velocityCommands[e.key]) {
+            if (velocityCommands[e.key] && selectedRobot) {
                 ws.send(JSON.stringify({
                     robot_id: selectedRobot,
                     velocity: velocityCommands[e.key]
@@ -53,12 +53,12 @@ function MapCreatePage() {
             window.removeEventListener('keydown', handleKeyDown);
             ws.close(); // 컴포넌트 언마운트 시 WebSocket 연결 해제
         };
-    }, [selectedRobot]); // selectedRobot이 변경될 때마다 실행되도록 설정
+    }, [selectedRobot]);
 
     // 서버에 명령을 전송하는 함수
     const sendCommand = (command) => {
         const token = localStorage.getItem('token'); // 로그인 시 저장한 토큰을 가져옴
-        fetch('http://localhost:5557/robot/send_command', { // 절대 경로 사용
+        fetch('http://172.30.1.40:5559/robot/send_command', { // 절대 경로 사용
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -72,7 +72,6 @@ function MapCreatePage() {
             .then(data => alert(data))
             .catch(error => console.error('Error sending command:', error));
     };
-    
 
     return (
         <div>
@@ -95,7 +94,7 @@ function MapCreatePage() {
             </div>
             <button onClick={() => sendCommand('slam')}>SLAM 시작</button>
             <div>
-                <img src="http://localhost:8080/stream?topic=/camera/rgb/image_raw" alt="SLAM View" />
+                <img src={`http://${selectedRobot}:8080/stream?topic=/camera/rgb/image_raw`} alt="SLAM View" />
             </div>
         </div>
     );
