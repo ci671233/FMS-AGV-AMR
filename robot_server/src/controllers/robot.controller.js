@@ -47,21 +47,22 @@ exports.sendCommand = async (req, res) => {
       return res.status(404).send('Robot not found');
     }
 
+    let scriptPath;
     if (command === 'slam') {
-      const scriptPath = '~/scripts/start_slam.sh';
-
-      exec(`ssh ${REMOTE_PC_USER}@${REMOTE_PC_IP} "bash ${scriptPath}"`, (error, stdout, stderr) => {
-        if (error) {
-          console.error(`exec error: ${error}`);
-          return res.status(500).send(`Failed to start ${command}`);
-        }
-        console.log(`stdout: ${stdout}`);
-        console.error(`stderr: ${stderr}`);
-        res.send(`${command} started`);
-      });
+      scriptPath = '~/scripts/start_slam.sh';
     } else {
-      res.status(400).send('Unknown command');
+      return res.status(400).send('Unknown command');
     }
+
+    exec(`ssh ${REMOTE_PC_USER}@${REMOTE_PC_IP} "bash ${scriptPath}"`, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`exec error: ${error}`);
+        return res.status(500).send(`Failed to start ${command}`);
+      }
+      console.log(`stdout: ${stdout}`);
+      console.error(`stderr: ${stderr}`);
+      res.send(`${command} started`);
+    });
   } catch (error) {
     console.error(`Error: ${error}`);
     res.status(500).send('Failed to send command');
@@ -98,3 +99,5 @@ wss.on('connection', (ws) => {
     }
   });
 });
+
+
