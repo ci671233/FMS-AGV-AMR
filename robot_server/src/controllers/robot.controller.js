@@ -6,6 +6,7 @@ const ROSLIB = require('roslib');
 const WebSocket = require('ws');
 const { exec } = require('child_process');
 
+// ROS 노드 초기화
 rosnodejs.initNode('/web_server_node')
   .then(() => {
     console.log('ROS node initialized');
@@ -38,6 +39,8 @@ exports.registerRobot = async (req, res) => {
 
 exports.sendCommand = async (req, res) => {
   const { robot_id, command } = req.body;
+  const { REMOTE_PC_USER, REMOTE_PC_IP } = process.env;
+
   try {
     const robot = await Robot.findById(robot_id);
     if (!robot) {
@@ -45,31 +48,16 @@ exports.sendCommand = async (req, res) => {
     }
 
     if (command === 'slam') {
-      // 터틀봇 라즈베리파이에서 터틀봇 브링업 실행
-      exec('ssh -X ubuntu@<라즈베리파이_IP> "~/start_turtlebot3.sh"', (error, stdout, stderr) => {
+      const scriptPath = '~/scripts/start_slam.sh';
+
+      exec(`ssh ${REMOTE_PC_USER}@${REMOTE_PC_IP} "bash ${scriptPath}"`, (error, stdout, stderr) => {
         if (error) {
-          console.error(`Error: ${error.message}`);
-          return res.status(500).send('Failed to start Turtlebot bringup');
-        }
-        if (stderr) {
-          console.error(`stderr: ${stderr}`);
-          return res.status(500).send('Failed to start Turtlebot bringup');
+          console.error(`exec error: ${error}`);
+          return res.status(500).send(`Failed to start ${command}`);
         }
         console.log(`stdout: ${stdout}`);
-        
-        // 원격 PC에서 Rviz 및 Teleop 실행
-        exec('~/start_remote.sh', (error, stdout, stderr) => {
-          if (error) {
-            console.error(`Error: ${error.message}`);
-            return res.status(500).send('Failed to start Rviz and Teleop');
-          }
-          if (stderr) {
-            console.error(`stderr: ${stderr}`);
-            return res.status(500).send('Failed to start Rviz and Teleop');
-          }
-          console.log(`stdout: ${stdout}`);
-          res.send('SLAM started successfully');
-        });
+        console.error(`stderr: ${stderr}`);
+        res.send(`${command} started`);
       });
     } else {
       res.status(400).send('Unknown command');

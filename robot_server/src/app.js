@@ -1,24 +1,20 @@
-// dotenv 패키지를 로드하고 .env 파일의 환경 변수를 process.env 객체에 로드
+// dotenv 패키지를 로드하여 .env 파일의 환경 변수를 process.env 객체에 로드
 require('dotenv').config();
 
-const express = require('express');     // express 패키지를 로드, 애플리케이션 생성
-const mongoose = require('mongoose');   // mongoose 패키지를 로드
+const express = require('express');     // Express 패키지 로드
+const mongoose = require('mongoose');   // Mongoose 패키지 로드
 const cors = require('cors');           // Cors 패키지 로드
-const bodyParser = require('body-parser');  // body-parser 패키지를 로드, 요청 본문을 파싱
-const cookieParser = require('cookie-parser'); // cookie-parser 패키지를 로드, 쿠키 파싱
-const http = require('http'); // 추가: HTTP 서버 생성에 필요
-const socketIo = require('socket.io'); // 추가: Socket.IO 모듈
+const bodyParser = require('body-parser');  // body-parser 패키지 로드
+const cookieParser = require('cookie-parser'); // cookie-parser 패키지 로드
 
-// Routes 모듈을 로드, 관련 api
+// Routes 모듈을 로드, 관련 API 경로 설정
 const robotRoutes = require('./routes/robot.route');
 
 const app = express();
-const server = http.createServer(app); // 추가: HTTP 서버 생성
-const io = socketIo(server); // 추가: Socket.IO 서버 생성
+
 // .env 파일의 주소 로드
 const MONGODB_URI = process.env.MONGODB_URI;
 const allowedOrigins = process.env.FRONT_URI.split(',');
-
 
 // CORS 설정
 app.use(cors({
@@ -39,14 +35,15 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(bodyParser.json()); // 요청 본문 json으로 파싱
+app.use(bodyParser.json()); // 요청 본문을 json으로 파싱
 app.use(cookieParser()); // 쿠키 파싱
 
+// MongoDB 연결
 mongoose.connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
-    .then(() => console.log('MongoDB connected'))   // 연결이 성공하면 콘솔에 메시지를 출력합니다.
-    .catch(err => console.log(err));    // 연결이 실패하면 콘솔에 오류 메시지를 출력합니다.
+    .then(() => console.log('MongoDB connected'))   // 연결이 성공하면 콘솔에 메시지 출력
+    .catch(err => console.log(err));    // 연결이 실패하면 콘솔에 오류 메시지 출력
 
-// '/robot/...' 경로로 들어오는 요청은 ...Routes 모듈에서
+// '/robot/...' 경로로 들어오는 요청은 robotRoutes 모듈에서 처리
 app.use('/robot', robotRoutes);
 
 // 오류 핸들러
@@ -55,17 +52,5 @@ app.use((err, req, res, next) => {
   res.status(500).send('Something broke!');
 });
 
-// Socket.IO 이벤트 처리
-io.on('connection', (socket) => {
-  console.log('New client connected');
-
-  socket.on('disconnect', () => {
-    console.log('Client disconnected');
-  });
-
-  socket.on('signal', (data) => {
-    // WebRTC 시그널링 처리
-  });
-});
-
-module.exports = { app, server }; // 서버도 내보냅니다.
+// 모듈 내보내기
+module.exports = app;

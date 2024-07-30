@@ -1,22 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Navbar from '../../components/Common/Navbar';
 import LogoutButton from '../../components/Common/LogoutButton';
 import UserInfo from '../../components/Common/UserInfo';
 import axios from 'axios';
+import io from 'socket.io-client';
+import SimplePeer from 'simple-peer';
+
+const socket = io.connect('http://172.30.1.40:7000'); // WebSocket 서버 주소
 
 function MapCreatePage() {
     const [robots, setRobots] = useState([]);
     const [selectedRobot, setSelectedRobot] = useState('');
+    const videoRef = useRef();
+    const peerRef = useRef(null);
 
     useEffect(() => {
-        // 페이지 로드 시 로봇 목록을 가져옴
         const fetchRobots = async () => {
             try {
-                const token = localStorage.getItem('token'); // 로그인 시 저장한 토큰을 가져옴
+                const token = localStorage.getItem('token');
                 const response = await axios.get('http://172.30.1.40:5559/robot/robots', {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
+                    headers: { Authorization: `Bearer ${token}` }
                 });
                 setRobots(response.data);
             } catch (error) {
@@ -26,43 +29,50 @@ function MapCreatePage() {
 
         fetchRobots();
 
-        // WebSocket 연결 설정
-        const ws = new WebSocket(`ws://${window.location.hostname}:8080`); // WebSocket 서버 주소
-        ws.onopen = () => {
-            console.log('WebSocket 연결이 설정되었습니다.');
-        };
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            navigator.mediaDevices.getUserMedia({ video: true, audio: false }).then(stream => {
+                if (videoRef.current) {
+                    videoRef.current.srcObject = stream;
+                }
 
-        const handleKeyDown = (e) => {
-            const velocityCommands = {
-                w: { linear: 0.1, angular: 0 },
-                a: { linear: 0, angular: 0.1 },
-                s: { linear: -0.1, angular: 0 },
-                d: { linear: 0, angular: -0.1 },
-                ' ': { linear: 0, angular: 0 } // space 키로 변경
-            };
-            if (velocityCommands[e.key] && selectedRobot) {
-                ws.send(JSON.stringify({
-                    robot_id: selectedRobot,
-                    velocity: velocityCommands[e.key]
-                }));
-            }
-        };
+                const peer = new SimplePeer({
+                    initiator: true,
+                    trickle: false,
+                    stream: stream
+                });
 
-        window.addEventListener('keydown', handleKeyDown);
+                peer.on('signal', data => {
+                    socket.emit('signal', { signal: data, robot_id: selectedRobot });
+                });
+
+                peer.on('stream', stream => {
+                    if (videoRef.current) {
+                        videoRef.current.srcObject = stream;
+                    }
+                });
+
+                peerRef.current = peer;
+
+                socket.on('signal', data => {
+                    peer.signal(data.signal);
+                });
+            }).catch(error => console.error('Error accessing media devices.', error));
+        } else {
+            console.error('MediaDevices API not supported.');
+        }
+
         return () => {
-            window.removeEventListener('keydown', handleKeyDown);
-            ws.close(); // 컴포넌트 언마운트 시 WebSocket 연결 해제
+            socket.disconnect();
         };
     }, [selectedRobot]);
 
-    // 서버에 명령을 전송하는 함수
     const sendCommand = (command) => {
-        const token = localStorage.getItem('token'); // 로그인 시 저장한 토큰을 가져옴
-        fetch('http://172.30.1.40:5559/robot/send_command', { // 절대 경로 사용
+        const token = localStorage.getItem('token');
+        fetch('http://172.30.1.40:5559/robot/send_command', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}` // 토큰을 헤더에 추가
+                'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify({
                 robot_id: selectedRobot,
@@ -72,6 +82,31 @@ function MapCreatePage() {
             .then(data => alert(data))
             .catch(error => console.error('Error sending command:', error));
     };
+
+    const handleKeyDown = useCallback((e) => {
+        const velocityCommands = {
+            w: { linear: 0.1, angular: 0 },
+            a: { linear: 0, angular: 0.1 },
+            s: { linear: -0.1, angular: 0 },
+            d: { linear: 0, angular: -0.1 },
+            ' ': { linear: 0, angular: 0 }
+        };
+        if (velocityCommands[e.key]) {
+            if (peerRef.current) {
+                peerRef.current.send(JSON.stringify({
+                    robot_id: selectedRobot,
+                    velocity: velocityCommands[e.key]
+                }));
+            }
+        }
+    }, [selectedRobot]);
+
+    useEffect(() => {
+        window.addEventListener('keydown', handleKeyDown);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [selectedRobot, handleKeyDown]);
 
     return (
         <div>
@@ -93,13 +128,25 @@ function MapCreatePage() {
                 </select>
             </div>
             <button onClick={() => sendCommand('slam')}>SLAM 시작</button>
-            <div>
-                <img src={`http://${selectedRobot}:8080/stream?topic=/camera/rgb/image_raw`} alt="SLAM View" />
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <div style={{ width: '50%' }}>
+                    <h3>SLAM 화면</h3>
+                    <img src="http://172.30.1.40:8080/stream?topic=/camera/rgb/image_raw" alt="SLAM View" />
+                </div>
+                <div style={{ width: '50%' }}>
+                    <h3>WebCam 화면</h3>
+                    <video ref={videoRef} autoPlay playsInline />
+                </div>
             </div>
         </div>
     );
-};
+}
 
 export default MapCreatePage;
+
+
+
+
+
 
 
