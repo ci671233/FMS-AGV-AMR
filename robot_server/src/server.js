@@ -4,9 +4,15 @@ const app = require('./app');
 const http = require('http');
 const server = http.createServer(app);
 const socketIO = require('socket.io');
-const io = socketIO(server);
+const io = socketIO(server, {
+  cors: {
+    origin: process.env.FRONT_URI,
+    methods: ['GET', 'POST'],
+    credentials: true
+  }
+});
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT;
 
 io.on('connection', (socket) => {
   console.log('New WebSocket connection');

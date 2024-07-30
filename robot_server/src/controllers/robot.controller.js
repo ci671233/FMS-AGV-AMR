@@ -66,4 +66,3 @@ wss.on('connection', (ws) => {
     }
   });
 });
-
