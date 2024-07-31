@@ -3,7 +3,6 @@ import Navbar from '../../components/Common/Navbar';
 import LogoutButton from '../../components/Common/LogoutButton';
 import UserInfo from '../../components/Common/UserInfo';
 import axios from 'axios';
-import ROSLIB from 'roslib';
 import io from 'socket.io-client';
 import SimplePeer from 'simple-peer';
 
@@ -19,7 +18,7 @@ function MapCreatePage() {
     const [selectedRobot, setSelectedRobot] = useState('');
     const videoRef = useRef();
     const peerRef = useRef(null);
-    const mapRef = useRef(null);
+    // const mapRef = useRef(null);
 
     useEffect(() => {
         const fetchRobots = async () => {
@@ -44,89 +43,83 @@ function MapCreatePage() {
     useEffect(() => {
         if (selectedRobot) {
             // WebRTC 설정
-            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                navigator.mediaDevices.getUserMedia({ video: true, audio: false }).then(stream => {
-                    if (videoRef.current) {
-                        videoRef.current.srcObject = stream;
-                    }
-
-                    const peer = new SimplePeer({
-                        initiator: true,
-                        trickle: false,
-                        stream: stream
-                    });
-
-                    peer.on('signal', data => {
-                        socket.emit('signal', { signal: data, robot_id: selectedRobot });
-                    });
-
-                    peer.on('stream', stream => {
-                        if (videoRef.current) {
-                            videoRef.current.srcObject = stream;
-                        }
-                    });
-
-                    peerRef.current = peer;
-
-                    socket.on('signal', data => {
-                        peer.signal(data.signal);
-                    });
-                }).catch(error => console.error('Error accessing media devices.', error));
-            } else {
-                console.error('MediaDevices API not supported.');
-            }
-
-            // ROS 연결 설정
-            const ros = new ROSLIB.Ros({
-                url: 'ws://172.30.1.40:9090'
+            const peer = new SimplePeer({
+                initiator: true,
+                trickle: false
             });
 
-            ros.on('connection', () => {
-                console.log('Connected to websocket server.');
+            peer.on('signal', data => {
+                socket.emit('signal', { signal: data, robot_id: selectedRobot });
             });
 
-            ros.on('error', (error) => {
-                console.log('Error connecting to websocket server: ', error);
-            });
-
-            ros.on('close', () => {
-                console.log('Connection to websocket server closed.');
-            });
-
-            // SLAM 데이터를 수신하여 화면에 표시
-            const mapTopic = new ROSLIB.Topic({
-                ros: ros,
-                name: '/map',
-                messageType: 'nav_msgs/OccupancyGrid'
-            });
-
-            mapTopic.subscribe((message) => {
-                console.log('Received message on /map: ', message);
-                if (mapRef.current) {
-                    const canvas = mapRef.current;
-                    const ctx = canvas.getContext('2d');
-                    const width = message.info.width;
-                    const height = message.info.height;
-                    canvas.width = width;
-                    canvas.height = height;
-                    const imageData = ctx.createImageData(width, height);
-
-                    for (let i = 0; i < message.data.length; i++) {
-                        const value = message.data[i];
-                        const color = value === -1 ? 255 : 255 - value;
-                        imageData.data[i * 4] = color;
-                        imageData.data[i * 4 + 1] = color;
-                        imageData.data[i * 4 + 2] = color;
-                        imageData.data[i * 4 + 3] = 255;
-                    }
-
-                    ctx.putImageData(imageData, 0, 0);
+            peer.on('stream', stream => {
+                if (videoRef.current) {
+                    videoRef.current.srcObject = stream;
                 }
             });
 
-            return () => {
-                ros.close();
+            peerRef.current = peer;
+
+            socket.on('signal', data => {
+                peer.signal(data.signal);
+            });
+
+            // WebSocket 연결을 통해 송신부에 연결
+            const connectWebSocket = async () => {
+                const ws = new WebSocket('ws://172.30.1.76:8081');  // 송신부의 IP 주소와 8081 포트를 사용
+                ws.onopen = () => {
+                    console.log('WebSocket connected');
+                };
+                ws.onmessage = (message) => {
+                    const data = JSON.parse(message.data);
+                    peer.signal(data);
+                };
             };
+
+            connectWebSocket();
+
+            // ROS 연결 설정
+            const ros = new window.ROSLIB.Ros({
+                url: 'ws://172.30.1.40:9090'  // SLAM 데이터 수신용 ROS WebSocket 서버
+            });
+
+            ros.on('connection', () => {
+                console.log('Connected to ROS websocket server.');
+            });
+
+            ros.on('error', (error) => {
+                console.log('Error connecting to ROS websocket server: ', error);
+            });
+
+            ros.on('close', () => {
+                console.log('Connection to ROS websocket server closed.');
+            });
+
+            // 2D 맵을 렌더링하기 위한 ROS2D 설정
+            if (window.ROS2D && window.ROSLIB) {
+                const viewer = new window.ROS2D.Viewer({
+                    divID: 'map',
+                    width: 600,
+                    height: 600
+                });
+
+                const gridClient = new window.ROS2D.OccupancyGridClient({
+                    ros: ros,
+                    rootObject: viewer.scene,
+                    continuous: true
+                });
+
+                gridClient.on('change', function() {
+                    viewer.scaleToDimensions(gridClient.currentGrid.width, gridClient.currentGrid.height);
+                    viewer.shift(gridClient.currentGrid.pose.position.x, gridClient.currentGrid.pose.position.y);
+                });
+
+                return () => {
+                    ros.close();
+                };
+            } else {
+                console.error('ROS2D is not loaded');
+            }
         }
     }, [selectedRobot]);
 
@@ -172,11 +165,11 @@ function MapCreatePage() {
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <div style={{ width: '50%' }}>
                     <h3>SLAM 화면</h3>
-                    <canvas ref={mapRef} />
+                    <div id="map" style={{ width: '100%', height: '600px' }} />
                 </div>
                 <div style={{ width: '50%' }}>
                     <h3>WebCam 화면</h3>
-                    <video ref={videoRef} autoPlay playsInline />
+                    <video ref={videoRef} autoPlay playsInline style={{ width: '100%' }} />
                 </div>
             </div>
         </div>
@@ -184,6 +177,8 @@ function MapCreatePage() {
 }
 
 export default MapCreatePage;
+
+
 
 
 
