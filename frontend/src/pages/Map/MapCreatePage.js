@@ -63,16 +63,25 @@ function MapCreatePage() {
                 peer.signal(data.signal);
             });
 
-            const ws = new WebSocket('ws://172.30.1.76:8081');
-            ws.onopen = () => {
-                console.log('WebSocket connected');
-            };
-            ws.onmessage = (message) => {
-                const data = JSON.parse(message.data);
-                peer.signal(data);
+            const connectWebSocket = () => {
+                const ws = new WebSocket('ws://172.30.1.76:8081');
+                ws.onopen = () => {
+                    console.log('WebSocket connected');
+                };
+                ws.onmessage = async (message) => {
+                    const data = JSON.parse(message.data);
+                    await peer.setRemoteDescription(new RTCSessionDescription(data));
+                    if (data.type === 'offer') {
+                        const answer = await peer.createAnswer();
+                        await peer.setLocalDescription(answer);
+                        ws.send(JSON.stringify(peer.localDescription));
+                    }
+                };
             };
 
-            // ROS 연결 설정
+            connectWebSocket();
+
+            // ROS 연결 설정 및 SLAM 데이터 처리 부분
             const ros = new window.ROSLIB.Ros({
                 url: 'ws://172.30.1.40:9090'
             });
@@ -97,22 +106,26 @@ function MapCreatePage() {
 
             mapTopic.subscribe((message) => {
                 console.log('Received message on /map: ', message);
-                const { width, height } = message.info;
-                const data = message.data;
-                const canvas = mapRef.current;
-                const context = canvas.getContext('2d');
-                const imageData = context.createImageData(width, height);
+                if (message.info && message.data) {
+                    const { width, height } = message.info;
+                    const data = message.data;
+                    const canvas = mapRef.current;
+                    const context = canvas.getContext('2d');
+                    const imageData = context.createImageData(width, height);
 
-                for (let i = 0; i < data.length; i++) {
-                    const value = data[i];
-                    const color = value === -1 ? 255 : 255 - value;
-                    imageData.data[i * 4] = color;
-                    imageData.data[i * 4 + 1] = color;
-                    imageData.data[i * 4 + 2] = color;
-                    imageData.data[i * 4 + 3] = 255;
+                    for (let i = 0; i < data.length; i++) {
+                        const value = data[i];
+                        const color = value === -1 ? 255 : 255 - value;
+                        imageData.data[i * 4] = color;
+                        imageData.data[i * 4 + 1] = color;
+                        imageData.data[i * 4 + 2] = color;
+                        imageData.data[i * 4 + 3] = 255;
+                    }
+
+                    context.putImageData(imageData, 0, 0);
+                } else {
+                    console.error('Received invalid /map message:', message);
                 }
-
-                context.putImageData(imageData, 0, 0);
             });
 
             return () => {
@@ -175,6 +188,17 @@ function MapCreatePage() {
 }
 
 export default MapCreatePage;
+
+
+
+
+
+
+
+
+
+
+
 
 
 
