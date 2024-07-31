@@ -18,7 +18,7 @@ function MapCreatePage() {
     const [selectedRobot, setSelectedRobot] = useState('');
     const videoRef = useRef();
     const peerRef = useRef(null);
-    // const mapRef = useRef(null);
+    const mapRef = useRef(null);
 
     useEffect(() => {
         const fetchRobots = async () => {
@@ -42,7 +42,6 @@ function MapCreatePage() {
 
     useEffect(() => {
         if (selectedRobot) {
-            // WebRTC 설정
             const peer = new SimplePeer({
                 initiator: true,
                 trickle: false
@@ -64,23 +63,18 @@ function MapCreatePage() {
                 peer.signal(data.signal);
             });
 
-            // WebSocket 연결을 통해 송신부에 연결
-            const connectWebSocket = async () => {
-                const ws = new WebSocket('ws://172.30.1.76:8081');  // 송신부의 IP 주소와 8081 포트를 사용
-                ws.onopen = () => {
-                    console.log('WebSocket connected');
-                };
-                ws.onmessage = (message) => {
-                    const data = JSON.parse(message.data);
-                    peer.signal(data);
-                };
+            const ws = new WebSocket('ws://172.30.1.76:8081');
+            ws.onopen = () => {
+                console.log('WebSocket connected');
             };
-
-            connectWebSocket();
+            ws.onmessage = (message) => {
+                const data = JSON.parse(message.data);
+                peer.signal(data);
+            };
 
             // ROS 연결 설정
             const ros = new window.ROSLIB.Ros({
-                url: 'ws://172.30.1.40:9090'  // SLAM 데이터 수신용 ROS WebSocket 서버
+                url: 'ws://172.30.1.40:9090'
             });
 
             ros.on('connection', () => {
@@ -95,31 +89,35 @@ function MapCreatePage() {
                 console.log('Connection to ROS websocket server closed.');
             });
 
-            // 2D 맵을 렌더링하기 위한 ROS2D 설정
-            if (window.ROS2D && window.ROSLIB) {
-                const viewer = new window.ROS2D.Viewer({
-                    divID: 'map',
-                    width: 600,
-                    height: 600
-                });
+            const mapTopic = new window.ROSLIB.Topic({
+                ros: ros,
+                name: '/map',
+                messageType: 'nav_msgs/OccupancyGrid'
+            });
 
-                const gridClient = new window.ROS2D.OccupancyGridClient({
-                    ros: ros,
-                    rootObject: viewer.scene,
-                    continuous: true
-                });
+            mapTopic.subscribe((message) => {
+                console.log('Received message on /map: ', message);
+                const { width, height } = message.info;
+                const data = message.data;
+                const canvas = mapRef.current;
+                const context = canvas.getContext('2d');
+                const imageData = context.createImageData(width, height);
 
-                gridClient.on('change', function() {
-                    viewer.scaleToDimensions(gridClient.currentGrid.width, gridClient.currentGrid.height);
-                    viewer.shift(gridClient.currentGrid.pose.position.x, gridClient.currentGrid.pose.position.y);
-                });
+                for (let i = 0; i < data.length; i++) {
+                    const value = data[i];
+                    const color = value === -1 ? 255 : 255 - value;
+                    imageData.data[i * 4] = color;
+                    imageData.data[i * 4 + 1] = color;
+                    imageData.data[i * 4 + 2] = color;
+                    imageData.data[i * 4 + 3] = 255;
+                }
 
-                return () => {
-                    ros.close();
-                };
-            } else {
-                console.error('ROS2D is not loaded');
-            }
+                context.putImageData(imageData, 0, 0);
+            });
+
+            return () => {
+                ros.close();
+            };
         }
     }, [selectedRobot]);
 
@@ -165,7 +163,7 @@ function MapCreatePage() {
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <div style={{ width: '50%' }}>
                     <h3>SLAM 화면</h3>
-                    <div id="map" style={{ width: '100%', height: '600px' }} />
+                    <canvas ref={mapRef} width="600" height="600" />
                 </div>
                 <div style={{ width: '50%' }}>
                     <h3>WebCam 화면</h3>
@@ -177,6 +175,7 @@ function MapCreatePage() {
 }
 
 export default MapCreatePage;
+
 
 
 
