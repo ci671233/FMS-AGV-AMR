@@ -6,7 +6,16 @@ import axios from 'axios';
 import io from 'socket.io-client';
 import SimplePeer from 'simple-peer';
 
-const socket = io.connect('http://172.30.1.40:7000', {
+// WebRTC 신호 서버에 연결 (라즈베리파이)
+const webcamSocket = io.connect('http://172.30.1.76:7000', { // 시그널링 서버의 IP 주소와 포트
+    transports: ['websocket'],
+    upgrade: true,
+    forceNew: true,
+    withCredentials: true
+});
+
+// 원격 PC의 SLAM 데이터 수신을 위한 WebSocket 연결
+const slamSocket = io.connect('http://172.30.1.40:3000', { // SLAM 데이터를 위한 IP 주소와 포트
     transports: ['websocket'],
     upgrade: true,
     forceNew: true,
@@ -20,6 +29,7 @@ function MapCreatePage() {
     const peerRef = useRef(null);
     const mapRef = useRef(null);
 
+    // 로봇 목록을 가져오는 부분
     useEffect(() => {
         const fetchRobots = async () => {
             try {
@@ -36,52 +46,78 @@ function MapCreatePage() {
         fetchRobots();
 
         return () => {
-            socket.disconnect();
+            webcamSocket.disconnect();
+            slamSocket.disconnect();
         };
     }, []);
 
+    // 선택된 로봇의 웹캠 스트림을 수신하는 부분
     useEffect(() => {
         if (selectedRobot) {
             const peer = new SimplePeer({
                 initiator: true,
-                trickle: false
+                trickle: false,
+                wrtc: window.wrtc
             });
 
+            // 신호 데이터 전송
             peer.on('signal', data => {
-                socket.emit('signal', { signal: data, robot_id: selectedRobot });
+                console.log('Sending signal:', data);
+                webcamSocket.emit('signal', { signal: data, robot_id: selectedRobot });
             });
 
+            // 스트림을 비디오 요소에 연결
             peer.on('stream', stream => {
+                console.log('Stream received:', stream);
                 if (videoRef.current) {
                     videoRef.current.srcObject = stream;
+                    console.log('Stream set to video element');
                 }
+            });
+
+            peer.on('error', err => {
+                console.error('Peer connection error:', err);
+            });
+
+            peer.on('connect', () => {
+                console.log('Peer connected');
+            });
+
+            peer.on('close', () => {
+                console.log('Peer connection closed');
+            });
+
+            peer.on('iceStateChange', (state) => {
+                console.log('ICE state change:', state);
+            });
+
+            peer.on('iceCandidate', (candidate) => {
+                console.log('ICE candidate:', candidate);
             });
 
             peerRef.current = peer;
 
-            socket.on('signal', data => {
+            // 신호 데이터 수신
+            webcamSocket.on('signal', data => {
+                console.log('Signal received:', data);
                 peer.signal(data.signal);
             });
 
-            const connectWebSocket = () => {
-                const ws = new WebSocket('ws://172.30.1.76:8081');
-                ws.onopen = () => {
-                    console.log('WebSocket connected');
-                };
-                ws.onmessage = async (message) => {
-                    const data = JSON.parse(message.data);
-                    await peer.setRemoteDescription(new RTCSessionDescription(data));
-                    if (data.type === 'offer') {
-                        const answer = await peer.createAnswer();
-                        await peer.setLocalDescription(answer);
-                        ws.send(JSON.stringify(peer.localDescription));
-                    }
-                };
+            webcamSocket.on('connect_error', err => {
+                console.error('Webcam socket connection error:', err);
+            });
+
+            return () => {
+                if (peerRef.current) {
+                    peerRef.current.destroy();
+                }
             };
+        }
+    }, [selectedRobot]);
 
-            connectWebSocket();
-
-            // ROS 연결 설정 및 SLAM 데이터 처리 부분
+    // ROS 연결 설정 및 SLAM 데이터 처리 부분
+    useEffect(() => {
+        if (selectedRobot) {
             const ros = new window.ROSLIB.Ros({
                 url: 'ws://172.30.1.40:9090'
             });
@@ -134,6 +170,7 @@ function MapCreatePage() {
         }
     }, [selectedRobot]);
 
+    // 키보드 입력으로 로봇을 제어하는 부분
     const handleKeyDown = useCallback((e) => {
         const velocityCommands = {
             w: { linear: 0.1, angular: 0 },
@@ -143,7 +180,7 @@ function MapCreatePage() {
             ' ': { linear: 0, angular: 0 }
         };
         if (velocityCommands[e.key]) {
-            socket.emit('key_press', { robot_id: selectedRobot, velocity: velocityCommands[e.key] });
+            slamSocket.emit('key_press', { robot_id: selectedRobot, velocity: velocityCommands[e.key] });
         }
     }, [selectedRobot]);
 
@@ -188,36 +225,6 @@ function MapCreatePage() {
 }
 
 export default MapCreatePage;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
