@@ -3,33 +3,18 @@ import Navbar from '../../components/Common/Navbar';
 import LogoutButton from '../../components/Common/LogoutButton';
 import UserInfo from '../../components/Common/UserInfo';
 import axios from 'axios';
-import io from 'socket.io-client';
-import SimplePeer from 'simple-peer';
-
-// WebRTC 신호 서버에 연결 (라즈베리파이)
-const webcamSocket = io.connect('http://172.30.1.76:7000', { // 시그널링 서버의 IP 주소와 포트
-    transports: ['websocket'],
-    upgrade: true,
-    forceNew: true,
-    withCredentials: true
-});
-
-// 원격 PC의 SLAM 데이터 수신을 위한 WebSocket 연결
-const slamSocket = io.connect('http://172.30.1.40:3000', { // SLAM 데이터를 위한 IP 주소와 포트
-    transports: ['websocket'],
-    upgrade: true,
-    forceNew: true,
-    withCredentials: true
-});
+import Janus from 'janus-gateway';  // npm을 통해 설치한 janus-gateway 라이브러리 로드
+import adapter from 'webrtc-adapter';  // webrtc-adapter 라이브러리 로드
 
 function MapCreatePage() {
     const [robots, setRobots] = useState([]);
     const [selectedRobot, setSelectedRobot] = useState('');
     const videoRef = useRef();
-    const peerRef = useRef(null);
     const mapRef = useRef(null);
+    const rosRef = useRef(null);  // rosRef를 useRef로 정의
+    const janusRef = useRef(null);
+    const pluginRef = useRef(null);
 
-    // 로봇 목록을 가져오는 부분
     useEffect(() => {
         const fetchRobots = async () => {
             try {
@@ -44,78 +29,59 @@ function MapCreatePage() {
         };
 
         fetchRobots();
-
-        return () => {
-            webcamSocket.disconnect();
-            slamSocket.disconnect();
-        };
     }, []);
 
-    // 선택된 로봇의 웹캠 스트림을 수신하는 부분
     useEffect(() => {
         if (selectedRobot) {
-            const peer = new SimplePeer({
-                initiator: true,
-                trickle: false,
-                wrtc: window.wrtc
-            });
-
-            // 신호 데이터 전송
-            peer.on('signal', data => {
-                console.log('Sending signal:', data);
-                webcamSocket.emit('signal', { signal: data, robot_id: selectedRobot });
-            });
-
-            // 스트림을 비디오 요소에 연결
-            peer.on('stream', stream => {
-                console.log('Stream received:', stream);
-                if (videoRef.current) {
-                    videoRef.current.srcObject = stream;
-                    console.log('Stream set to video element');
-                }
-            });
-
-            peer.on('error', err => {
-                console.error('Peer connection error:', err);
-            });
-
-            peer.on('connect', () => {
-                console.log('Peer connected');
-            });
-
-            peer.on('close', () => {
-                console.log('Peer connection closed');
-            });
-
-            peer.on('iceStateChange', (state) => {
-                console.log('ICE state change:', state);
-            });
-
-            peer.on('iceCandidate', (candidate) => {
-                console.log('ICE candidate:', candidate);
-            });
-
-            peerRef.current = peer;
-
-            // 신호 데이터 수신
-            webcamSocket.on('signal', data => {
-                console.log('Signal received:', data);
-                peer.signal(data.signal);
-            });
-
-            webcamSocket.on('connect_error', err => {
-                console.error('Webcam socket connection error:', err);
-            });
-
-            return () => {
-                if (peerRef.current) {
-                    peerRef.current.destroy();
-                }
-            };
+            Janus.init({ debug: "all", callback: () => {
+                janusRef.current = new Janus({
+                    server: 'http://localhost:8088/janus',  // Janus 서버 주소
+                    success: () => {
+                        janusRef.current.attach({
+                            plugin: "janus.plugin.videoroom",
+                            success: (pluginHandle) => {
+                                pluginRef.current = pluginHandle;
+                                pluginHandle.send({
+                                    message: {
+                                        request: "join",
+                                        room: 1234,  // 방 ID
+                                        ptype: "subscriber",
+                                        display: "User"
+                                    }
+                                });
+                            },
+                            onmessage: (msg, jsep) => {
+                                if (jsep !== undefined && jsep !== null) {
+                                    pluginRef.current.createAnswer({
+                                        jsep: jsep,
+                                        media: { audioSend: false, videoSend: false },
+                                        success: (jsep) => {
+                                            pluginRef.current.send({
+                                                message: { request: "start", room: 1234 },
+                                                jsep: jsep
+                                            });
+                                        },
+                                        error: (error) => {
+                                            console.error("WebRTC error:", error);
+                                        }
+                                    });
+                                }
+                            },
+                            onremotestream: (stream) => {
+                                if (videoRef.current) {
+                                    videoRef.current.srcObject = stream;
+                                }
+                            }
+                        });
+                    },
+                    error: (error) => {
+                        console.error("Janus error:", error);
+                    }
+                });
+            }});
         }
     }, [selectedRobot]);
 
-    // ROS 연결 설정 및 SLAM 데이터 처리 부분
     useEffect(() => {
         if (selectedRobot) {
             const ros = new window.ROSLIB.Ros({
@@ -141,7 +107,6 @@ function MapCreatePage() {
             });
 
             mapTopic.subscribe((message) => {
-                console.log('Received message on /map: ', message);
                 if (message.info && message.data) {
                     const { width, height } = message.info;
                     const data = message.data;
@@ -164,13 +129,14 @@ function MapCreatePage() {
                 }
             });
 
+            rosRef.current = ros;  // rosRef 초기화
+
             return () => {
                 ros.close();
             };
         }
     }, [selectedRobot]);
 
-    // 키보드 입력으로 로봇을 제어하는 부분
     const handleKeyDown = useCallback((e) => {
         const velocityCommands = {
             w: { linear: 0.1, angular: 0 },
@@ -179,17 +145,36 @@ function MapCreatePage() {
             d: { linear: 0, angular: -0.1 },
             ' ': { linear: 0, angular: 0 }
         };
-        if (velocityCommands[e.key]) {
-            slamSocket.emit('key_press', { robot_id: selectedRobot, velocity: velocityCommands[e.key] });
+        if (velocityCommands[e.key] && rosRef.current) {  // rosRef 사용
+            const cmdVel = new window.ROSLIB.Topic({
+                ros: rosRef.current,
+                name: '/cmd_vel',
+                messageType: 'geometry_msgs/Twist'
+            });
+
+            const twist = new window.ROSLIB.Message({
+                linear: {
+                    x: velocityCommands[e.key].linear,
+                    y: 0,
+                    z: 0
+                },
+                angular: {
+                    x: 0,
+                    y: 0,
+                    z: velocityCommands[e.key].angular
+                }
+            });
+
+            cmdVel.publish(twist);
         }
-    }, [selectedRobot]);
+    }, []);
 
     useEffect(() => {
         window.addEventListener('keydown', handleKeyDown);
         return () => {
             window.removeEventListener('keydown', handleKeyDown);
         };
-    }, [selectedRobot, handleKeyDown]);
+    }, [handleKeyDown]);
 
     return (
         <div>
@@ -225,6 +210,15 @@ function MapCreatePage() {
 }
 
 export default MapCreatePage;
+
+
+
+
+
+
+
+
+
 
 
 
