@@ -17,6 +17,7 @@ const io = socketIo(server, {
 });
 
 let ffmpeg;
+let videoStream;
 
 const startFFmpeg = () => {
     console.log('Starting ffmpeg stream...');
@@ -30,7 +31,7 @@ const startFFmpeg = () => {
         'pipe:1'
     ]);
 
-    const videoStream = new Readable({
+    videoStream = new Readable({
         read() {}
     });
 
@@ -74,8 +75,9 @@ io.on('connection', (socket) => {
 
         videoStream.on('data', (data) => {
             if (peerConnection.connectionState === 'connected') {
-                const videoTrack = peerConnection.getSenders().find(sender => sender.track.kind === 'video').track;
-                videoTrack.write(data);
+                // Assuming the data is in a format that can be used directly
+                const videoBuffer = new Uint8Array(data);
+                peerConnection.addTrack(new wrtc.MediaStreamTrack(videoBuffer));
             }
         });
 
@@ -106,11 +108,12 @@ io.on('connection', (socket) => {
         socket.on('disconnect', () => {
             console.log('Client disconnected');
             peerConnection.close();
+            if (ffmpeg) {
+                ffmpeg.kill('SIGINT');
+            }
         });
     });
 });
 
 const PORT = process.env.PORT || 7001;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
-
