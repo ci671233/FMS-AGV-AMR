@@ -55,7 +55,12 @@ io.on('connection', (socket) => {
     console.log('New client connected');
 
     socket.on('join', async () => {
-        const peerConnection = new wrtc.RTCPeerConnection();
+        const peerConnection = new wrtc.RTCPeerConnection({
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' }
+            ]
+        });
 
         peerConnection.onicecandidate = (event) => {
             if (event.candidate) {
@@ -77,6 +82,7 @@ io.on('connection', (socket) => {
             if (peerConnection.connectionState === 'connected') {
                 // Assuming the data is in a format that can be used directly
                 const videoBuffer = new Uint8Array(data);
+                console.log('Sending video data:', videoBuffer);
                 peerConnection.addTrack(new wrtc.MediaStreamTrack(videoBuffer));
             }
         });
@@ -117,3 +123,4 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 7001;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
