@@ -7,22 +7,16 @@ import axios from 'axios';
 function MapUploadPage() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [pgmFile, setPgmFile] = useState(null);
-  const [yamlFile, setYamlFile] = useState(null);
+  const [pngFile, setPngFile] = useState(null);
 
-  const handlePgmFileChange = (e) => {
-    setPgmFile(e.target.files[0]);
-  };
-
-  const handleYamlFileChange = (e) => {
-    setYamlFile(e.target.files[0]);
+  const handlePngFile = (e) => {
+    setPngFile(e.target.files[0]);
   };
 
   const handleUpload = async (e) => {
     e.preventDefault();
     const formData = new FormData();
-    formData.append('pgm', pgmFile);
-    formData.append('yaml', yamlFile);
+    formData.append('pgm', pngFile);
     formData.append('name', name);
     formData.append('description', description);
 
@@ -60,18 +54,11 @@ function MapUploadPage() {
           onChange={(e) => setDescription(e.target.value)}
           required
         />
-        <label>pgm 파일을 올려주세요</label>
+        <label>png 파일을 올려주세요</label>
         <input
           type="file"
-          accept=".pgm"
-          onChange={handlePgmFileChange}
-          required
-        />
-        <label>yaml 파일을 올려주세요</label>
-        <input
-          type="file"
-          accept=".yaml"
-          onChange={handleYamlFileChange}
+          accept=".png"
+          onChange={handlePngFile}
           required
         />
         <button type="submit">Upload Map</button>

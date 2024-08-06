@@ -1,10 +1,7 @@
 const mongoose = require('mongoose');
 const axios = require('axios');
-// const { GridFSBucket } = require('mongodb');
 const jwt = require('jsonwebtoken');
 const Map = require('../models/map.model');
-// const convertPgmToPng = require('../utils/convertPgmToPng');
-const conn = mongoose.connection;
 
 exports.getMaps = async (req, res) => {
   try {

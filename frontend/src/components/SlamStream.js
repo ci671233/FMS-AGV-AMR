@@ -1,30 +1,31 @@
 import React, { useEffect, useRef } from 'react';
 import io from 'socket.io-client';
 
-const SlamStream = ({ selectedRobot }) => {
-    const videoRef = useRef(null);
+const SlamStream = () => {
+    const videoRef = useRef();
 
     useEffect(() => {
-        if (selectedRobot) {
-            const socket = io('http://172.30.1.40:7002');
-            socket.on('slam-stream', (data) => {
-                const videoElement = videoRef.current;
-                const blob = new Blob([data], { type: 'video/mp2t' });
-                videoElement.src = URL.createObjectURL(blob);
-                videoElement.play();
-            });
+        const socket = io('http://172.30.1.40:7002');
 
-            return () => {
-                socket.disconnect();
-            };
-        }
-    }, [selectedRobot]);
+        socket.on('video', (data) => {
+            if (videoRef.current) {
+                videoRef.current.src = `data:image/jpeg;base64,${data}`;
+            }
+        });
+
+        return () => {
+            socket.disconnect();
+        };
+    }, []);
 
     return (
         <div>
-            <video ref={videoRef} autoPlay playsInline style={{ width: '100%' }} />
+            <img ref={videoRef} alt="SLAM Stream" />
         </div>
     );
 };
 
 export default SlamStream;
+
+
+

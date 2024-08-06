@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Navbar from '../../components/Common/Navbar';
 import LogoutButton from '../../components/Common/LogoutButton';
 import UserInfo from '../../components/Common/UserInfo';
@@ -10,6 +10,7 @@ function MapCreatePage() {
     const [robots, setRobots] = useState([]);
     const [selectedRobot, setSelectedRobot] = useState('');
 
+    // 로봇 목록을 가져오는 부분
     useEffect(() => {
         const fetchRobots = async () => {
             try {
@@ -26,26 +27,6 @@ function MapCreatePage() {
         fetchRobots();
     }, []);
 
-    const handleKeyDown = useCallback((e) => {
-        const velocityCommands = {
-            w: { linear: 0.1, angular: 0 },
-            a: { linear: 0, angular: 0.1 },
-            s: { linear: -0.1, angular: 0 },
-            d: { linear: 0, angular: -0.1 },
-            ' ': { linear: 0, angular: 0 }
-        };
-        if (velocityCommands[e.key]) {
-            // 여기에 필요한 키 입력 처리를 추가할 수 있습니다.
-        }
-    }, [selectedRobot]);
-
-    useEffect(() => {
-        window.addEventListener('keydown', handleKeyDown);
-        return () => {
-            window.removeEventListener('keydown', handleKeyDown);
-        };
-    }, [selectedRobot, handleKeyDown]);
-
     return (
         <div>
             <header>
@@ -55,7 +36,7 @@ function MapCreatePage() {
             <div style={{ display: 'flex' }}>
                 <Navbar />
             </div>
-            <h2>SLAM Control</h2>
+            <h2>Map Create</h2>
             <div>
                 <label>로봇 선택:</label>
                 <select onChange={(e) => setSelectedRobot(e.target.value)} value={selectedRobot}>
@@ -68,7 +49,7 @@ function MapCreatePage() {
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <div style={{ width: '50%' }}>
                     <h3>SLAM 화면</h3>
-                    {selectedRobot && <SlamStream selectedRobot={selectedRobot} />}
+                    {selectedRobot && <SlamStream />}
                 </div>
                 <div style={{ width: '50%' }}>
                     <h3>WebCam 화면</h3>
@@ -80,4 +61,7 @@ function MapCreatePage() {
 }
 
 export default MapCreatePage;
+
+
+
 
