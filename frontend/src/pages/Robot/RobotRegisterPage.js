@@ -4,7 +4,7 @@ import LogoutButton from '../../components/Common/LogoutButton';
 import UserInfo from '../../components/Common/UserInfo';
 import axios from 'axios';
 
-function RobotPage() {
+function RobotRegisterPage() {
     const [name, setName] = useState('');
     const [ip, setIp] = useState('');
     const [model, setModel] = useState('');
@@ -81,4 +81,4 @@ function RobotPage() {
     );
 }
 
-export default RobotPage;
+export default RobotRegisterPage;

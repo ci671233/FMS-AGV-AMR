@@ -15,7 +15,10 @@ function MapCreatePage() {
       try {
         const token = localStorage.getItem('token');
         const response = await axios.get('http://172.30.1.40:5559/robot/robots', {
-          headers: { Authorization: `Bearer ${token}` }
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}` 
+            }
         });
         setRobots(response.data);
       } catch (error) {
