@@ -4,14 +4,12 @@ import LogoutButton from '../../components/Common/LogoutButton';
 import UserInfo from '../../components/Common/UserInfo';
 import axios from 'axios';
 import WebcamStream from '../../components/WebcamStream';
+import SlamStream from '../../components/SlamStream';
 
 function MapCreatePage() {
     const [robots, setRobots] = useState([]);
     const [selectedRobot, setSelectedRobot] = useState('');
-    const mapRef = useRef(null);
-    const slamSocketRef = useRef(null);
 
-    // 로봇 목록을 가져오는 부분
     useEffect(() => {
         const fetchRobots = async () => {
             try {
@@ -28,64 +26,6 @@ function MapCreatePage() {
         fetchRobots();
     }, []);
 
-    // ROS 연결 설정 및 SLAM 데이터 처리 부분
-    useEffect(() => {
-        if (selectedRobot) {
-            const ros = new window.ROSLIB.Ros({
-                url: 'ws://172.30.1.40:9090'
-            });
-
-            ros.on('connection', () => {
-                console.log('Connected to ROS websocket server.');
-            });
-
-            ros.on('error', (error) => {
-                console.log('Error connecting to ROS websocket server: ', error);
-            });
-
-            ros.on('close', () => {
-                console.log('Connection to ROS websocket server closed.');
-            });
-
-            const mapTopic = new window.ROSLIB.Topic({
-                ros: ros,
-                name: '/map',
-                messageType: 'nav_msgs/OccupancyGrid'
-            });
-
-            mapTopic.subscribe((message) => {
-                console.log('Received message on /map: ', message);
-                if (message.info && message.data) {
-                    const { width, height } = message.info;
-                    const data = message.data;
-                    const canvas = mapRef.current;
-                    const context = canvas.getContext('2d');
-                    const imageData = context.createImageData(width, height);
-
-                    for (let i = 0; i < data.length; i++) {
-                        const value = data[i];
-                        const color = value === -1 ? 255 : 255 - value;
-                        imageData.data[i * 4] = color;
-                        imageData.data[i * 4 + 1] = color;
-                        imageData.data[i * 4 + 2] = color;
-                        imageData.data[i * 4 + 3] = 255;
-                    }
-
-                    context.putImageData(imageData, 0, 0);
-                } else {
-                    console.error('Received invalid /map message:', message);
-                }
-            });
-
-            slamSocketRef.current = ros;
-
-            return () => {
-                ros.close();
-            };
-        }
-    }, [selectedRobot]);
-
-    // 키보드 입력으로 로봇을 제어하는 부분
     const handleKeyDown = useCallback((e) => {
         const velocityCommands = {
             w: { linear: 0.1, angular: 0 },
@@ -95,9 +35,7 @@ function MapCreatePage() {
             ' ': { linear: 0, angular: 0 }
         };
         if (velocityCommands[e.key]) {
-            if (slamSocketRef.current) {
-                slamSocketRef.current.emit('key_press', { robot_id: selectedRobot, velocity: velocityCommands[e.key] });
-            }
+            // 여기에 필요한 키 입력 처리를 추가할 수 있습니다.
         }
     }, [selectedRobot]);
 
@@ -130,7 +68,7 @@ function MapCreatePage() {
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <div style={{ width: '50%' }}>
                     <h3>SLAM 화면</h3>
-                    <canvas ref={mapRef} width="600" height="600" />
+                    {selectedRobot && <SlamStream selectedRobot={selectedRobot} />}
                 </div>
                 <div style={{ width: '50%' }}>
                     <h3>WebCam 화면</h3>
@@ -142,3 +80,4 @@ function MapCreatePage() {
 }
 
 export default MapCreatePage;
+
