@@ -20,15 +20,11 @@ function MonitoringPage() {
           return;
         }
 
-        console.log('Token:', token);
-
         const response = await axios.get('http://localhost:5558/monitoring', {
           headers: {
             Authorization: `Bearer ${token}`
           }
         });
-
-        console.log('Monitoring Data Response:', response.data);
 
         setMapImage(response.data.mapImage);
         setRobotPositions(response.data.robot_position);
@@ -50,15 +46,11 @@ function MonitoringPage() {
         return;
       }
 
-      console.log('Token:', token);
-
       const response = await axios.get(`http://localhost:5556/robot/${robotId}`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
       });
-
-      console.log('Robot Details Response:', response.data);
 
       setSelectedRobot(response.data);
     } catch (error) {
@@ -68,59 +60,63 @@ function MonitoringPage() {
   };
 
   return (
-    <div style={{ display: 'flex' }}>
-      <div style={{ flex: 1 }}>
-        <header>
-            <UserInfo />
-            <LogoutButton />
-        </header>
+    <div style={{ fontFamily: 'Arial, sans-serif', margin: '20px', display: 'flex', flexDirection: 'column' }}>
+      <header style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+        <UserInfo />
+        <LogoutButton />
+      </header>
+      <div style={{ display: 'flex' }}>
         <Navbar />
-        <h2>Monitoring</h2>
-        {error && <p style={{ color: 'red' }}>{error}</p>}
-        {mapImage ? (
-          <div style={{ position: 'relative', width: '600px', height: '400px' }}>
-            <img src={mapImage.mapImage} alt="Selected Map" style={{ width: '100%', height: '100%' }} />
-            {robotPositions.map((robot) => (
-              <div
-                key={robot.id}
-                onClick={() => handleRobotClick(robot.id)}
-                style={{
-                  position: 'absolute',
-                  left: `${robot.x}px`,
-                  top: `${robot.y}px`,
-                  width: '20px',
-                  height: '20px',
-                  backgroundColor: 'red',
-                  borderRadius: '50%',
-                  cursor: 'pointer'
-                }}
-              />
-            ))}
-          </div>
-        ) : (
-          <p>Loading map...</p>
-        )}
       </div>
-      <div style={{ flex: 1, paddingLeft: '20px' }}>
-        <h3>Robot Details</h3>
-        {selectedRobot ? (
-          <div>
-            <p>ID: {selectedRobot.id}</p>
-            <p>Name: {selectedRobot.name}</p>
-            <p>Status: {selectedRobot.status}</p>
-            <p>Battery: {selectedRobot.battery}%</p>
-            <p>Position: ({selectedRobot.x}, {selectedRobot.y})</p>
-            <p>Model: {selectedRobot.model}</p>
-          </div>
-        ) : (
-          <p>Click on the robot to see details</p>
-        )}
+      <h2 style={{ textAlign: 'center', margin: '20px 0' }}>Monitoring</h2>
+      {error && <p style={{ color: 'red', textAlign: 'center' }}>{error}</p>}
+      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        <div style={{ flex: 2, marginRight: '20px' }}>
+          {mapImage ? (
+            <div style={{ position: 'relative', width: '100%', paddingBottom: '56.25%', margin: '0 auto' }}>
+              <img src={mapImage.mapImage} alt="Selected Map" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} />
+              {robotPositions.map((robot) => (
+                <div
+                  key={robot.id}
+                  onClick={() => handleRobotClick(robot.id)}
+                  style={{
+                    position: 'absolute',
+                    left: `${robot.x}px`,
+                    top: `${robot.y}px`,
+                    width: '20px',
+                    height: '20px',
+                    backgroundColor: 'red',
+                    borderRadius: '50%',
+                    cursor: 'pointer'
+                  }}
+                />
+              ))}
+            </div>
+          ) : (
+            <p style={{ textAlign: 'center' }}>Loading map...</p>
+          )}
+        </div>
+        <div style={{ flex: 1, marginRight: '20px' }}>
+          <h3 style={{ textAlign: 'center' }}>Robot Details</h3>
+          {selectedRobot ? (
+            <div style={{ textAlign: 'center' }}>
+              <p>ID: {selectedRobot.id}</p>
+              <p>Name: {selectedRobot.name}</p>
+              <p>Status: {selectedRobot.status}</p>
+              <p>Battery: {selectedRobot.battery}%</p>
+              <p>Position: ({selectedRobot.x}, {selectedRobot.y})</p>
+              <p>Model: {selectedRobot.model}</p>
+            </div>
+          ) : (
+            <p style={{ textAlign: 'center' }}>Click on the robot to see details</p>
+          )}
+        </div>
       </div>
-      <div style={{ flex: 1, paddingLeft: '20px' }}>
-        <h3>Logs</h3>
-        <ul>
+      <div style={{ marginTop: '20px' }}>
+        <h3 style={{ textAlign: 'center' }}>Logs</h3>
+        <ul style={{ listStyleType: 'none', padding: '0', textAlign: 'center' }}>
           {logs.map((log) => (
-            <li key={log.id}>{log.message} - {log.timestamp}</li>
+            <li key={log.id} style={{ margin: '10px 0' }}>{log.message} - {log.timestamp}</li>
           ))}
         </ul>
       </div>
@@ -129,6 +125,3 @@ function MonitoringPage() {
 }
 
 export default MonitoringPage;
-
-
-

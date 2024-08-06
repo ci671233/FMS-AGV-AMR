@@ -5,8 +5,8 @@ import UserInfo from '../../components/Common/UserInfo';
 
 function MainPage() {
     return (
-        <div>
-            <header>
+        <div style={{ fontFamily: 'Arial, sans-serif', margin: '20px' }}>
+            <header style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
                 <UserInfo />
                 <LogoutButton />
             </header>

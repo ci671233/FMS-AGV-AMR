@@ -8,7 +8,7 @@ import MapCreatePage from './pages/Map/MapCreatePage';
 import MapUploadPage from './pages/Map/MapUploadPage';
 import MapEditPage from './pages/Map/MapEditPage';
 import ControlPage from './pages/Control/ControlPage';
-import RobotPage from './pages/Robot/RobotPage';
+import RobotRegisterPage from './pages/Robot/RobotRegisterPage';
 import LogPage from './pages/Log/LogPage';
 
 function App() {
@@ -23,7 +23,7 @@ function App() {
                 <Route path="/map_upload" element={<MapUploadPage />} />
                 <Route path="/map_edit" element={<MapEditPage />} />
                 <Route path="/control" element={<ControlPage />} />
-                <Route path="/robot" element={<RobotPage />} />
+                <Route path="/robot_register" element={<RobotRegisterPage />} />
                 <Route path="/logs" element={<LogPage />} />
                 <Route path="/" element={<LoginPage />} /> {/* 기본 경로는 로그인 페이지로 설정 */}
             </Routes>

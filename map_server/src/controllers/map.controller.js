@@ -2,6 +2,18 @@ const mongoose = require('mongoose');
 const axios = require('axios');
 const jwt = require('jsonwebtoken');
 const Map = require('../models/map.model');
+const multer = require('multer'); 
+const { GridFSBucket } = require('mongodb');
+
+// GridFS 초기화
+let gfs;
+mongoose.connection.once('open', () => {
+  gfs = new GridFSBucket(mongoose.connection.db, { bucketName: 'maps' });
+});
+
+// Multer 설정
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
 
 exports.getMaps = async (req, res) => {
   try {
@@ -25,92 +37,54 @@ exports.saveMap = async (req, res) => {
   }
 };
 
+// 맵 업로드
+exports.uploadMap = [
+  upload.single('file'),
+  async (req, res) => {
+    try {
+      const { name, description } = req.body;
+      const file = req.file;
 
+      if (!file) {
+        return res.status(400).json({ message: 'File is required' });
+      }
 
+      console.log('Uploading file:', file);
+      console.log('Map name:', name);
+      console.log('Map description:', description);
 
+      const uploadStream = gfs.openUploadStream(file.originalname, {
+        contentType: file.mimetype
+      });
 
-// let gfs;
-// conn.once('open', () => {
-//   gfs = new GridFSBucket(conn.db, { bucketName: 'maps' });
-// });
+      let fileId;
 
-// exports.uploadMap = async (req, res) => {
-//   try {
-//     const { name, description } = req.body;
-//     const pgmFile = req.files.pgm[0];
-//     const yamlFile = req.files.yaml[0];
+      const uploadPromise = new Promise((resolve, reject) => {
+        uploadStream.on('finish', (uploadedFile) => {
+          fileId = uploadedFile._id;
+          resolve();
+        });
+        uploadStream.on('error', reject);
+        uploadStream.end(file.buffer);
+      });
 
-//     console.log('Uploading files:', pgmFile, yamlFile);
-//     console.log('Map name:', name);
-//     console.log('Map description:', description);
+      await uploadPromise;
 
-//     if (!pgmFile || !yamlFile) {
-//       return res.status(400).json({ message: 'Both .pgm and .yaml files are required' });
-//     }
+      const map = new Map({
+        name,
+        description,
+        FileId: fileId
+      });
 
-//     const uploadPgmStream = gfs.openUploadStream(pgmFile.originalname, {
-//       contentType: pgmFile.mimetype
-//     });
-
-//     const uploadYamlStream = gfs.openUploadStream(yamlFile.originalname, {
-//       contentType: yamlFile.mimetype
-//     });
-
-//     let pgmFileId, yamlFileId, pngFileId;
-
-//     const uploadPgmPromise = new Promise((resolve, reject) => {
-//       uploadPgmStream.on('finish', (uploadedFile) => {
-//         pgmFileId = uploadedFile._id;
-//         resolve();
-//       });
-//       uploadPgmStream.on('error', reject);
-//       uploadPgmStream.end(pgmFile.buffer);
-//     });
-
-//     const uploadYamlPromise = new Promise((resolve, reject) => {
-//       uploadYamlStream.on('finish', (uploadedFile) => {
-//         yamlFileId = uploadedFile._id;
-//         resolve();
-//       });
-//       uploadYamlStream.on('error', reject);
-//       uploadYamlStream.end(yamlFile.buffer);
-//     });
-
-//     await Promise.all([uploadPgmPromise, uploadYamlPromise]);
-
-//     // Convert PGM to PNG and upload to GridFS
-//     const pngBuffer = await convertPgmToPng(pgmFile.buffer);
-//     const uploadPngStream = gfs.openUploadStream(pgmFile.originalname.replace('.pgm', '.png'), {
-//       contentType: 'image/png'
-//     });
-
-//     const uploadPngPromise = new Promise((resolve, reject) => {
-//       uploadPngStream.on('finish', (uploadedFile) => {
-//         pngFileId = uploadedFile._id;
-//         resolve();
-//       });
-//       uploadPngStream.on('error', reject);
-//       uploadPngStream.end(pngBuffer);
-//     });
-
-//     await uploadPngPromise;
-
-//     const map = new Map({
-//       name,
-//       description,
-//       pgmFileId,
-//       yamlFileId,
-//       pngFileId
-//     });
-
-//     await map.save();
-//     console.log('Map saved to database:', map);
-//     res.status(201).json({ message: 'Map uploaded successfully', map });
-//   } catch (error) {
-//     console.error('Error uploading map:', error);
-//     res.status(500).json({ message: 'Error uploading map', error: error.message });
-//   }
-// };
+      await map.save();
+      console.log('Map saved to database:', map);
+      res.status(201).json({ message: 'Map uploaded successfully', map });
+    } catch (error) {
+      console.error('Error uploading map:', error);
+      res.status(500).json({ message: 'Error uploading map', error: error.message });
+    }
+  }
+];
 
 // exports.getMaps = async (req, res) => {
 //   try {
