@@ -1,41 +1,38 @@
-const axios = require('axios');
-const jwt = require('jsonwebtoken');
+const Robot = require('../models/robot.model');
+const WebSocket = require('ws');
 
-exports.getMonitoringData = async (req, res) => {
-    try {
-        const authHeader = req.headers['authorization'];
-        const token = authHeader.split(' ')[1];
-        const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
-        const userId = decoded.id;
+let clients = [];
 
-        console.log('Fetching monitoring data for user:', userId);
+exports.monitorUpdates = (ws, req) => {
+  clients.push(ws);
 
-        // 선택된 맵 가져오기
-        const mapResponse = await axios.get(`http://localhost:5557/map/selected/${userId}`, {
-            headers: { Authorization: authHeader }
-        });
-        const mapImage = mapResponse.data;
-        console.log('Map image data:', mapImage);
+  ws.on('message', (message) => {
+    // 클라이언트로부터 메시지를 수신할 경우 처리 로직
+    console.log('Received message from client:', message);
+  });
 
-        // 로봇 위치 가져오기
-        const robotsResponse = await axios.get(`http://localhost:5559/robot/positions/${userId}`, {
-            headers: { Authorization: authHeader }
-        });
-        const robot_position = robotsResponse.data;
-        console.log('Robot positions data:', robot_position);
+  ws.on('close', () => {
+    clients = clients.filter(client => client !== ws);
+  });
 
-        // 최신 로그 가져오기
-        const logsResponse = await axios.get('http://localhost:5561/log/latest', {
-            headers: { Authorization: authHeader }
-        });
-        const log_top = logsResponse.data;
-        console.log('Logs data:', log_top);
-        
-        res.json({ mapImage, robot_position, log_top });
-    } catch (error) {
-        console.error('Error fetching monitoring data:', error.message);
-        res.status(500).json({ message: 'Error fetching monitoring data', error: error.message });
-    }
+  // 주기적으로 로봇 위치 데이터 전송 (예시: 1초마다)
+  setInterval(async () => {
+    const robotPositions = await getRobotPositions();
+    clients.forEach(client => {
+      client.send(JSON.stringify(robotPositions));
+    });
+  }, 1000);
 };
+
+// 로봇 위치 데이터를 가져오는 함수
+async function getRobotPositions() {
+  try {
+    const robots = await Robot.find().select('name location');
+    return robots;
+  } catch (error) {
+    console.error('Error fetching robot positions:', error);
+    return [];
+  }
+}
 
 

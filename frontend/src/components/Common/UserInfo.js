@@ -22,7 +22,11 @@ function UserInfo() {
         fetchUserInfo();
     }, []);
 
-    return <div>{name}</div>;
+    return (
+        <div style={{ padding: '10px 20px', backgroundColor: '#eee', borderRadius: '5px', marginBottom: '10px' }}>
+            {name}
+        </div>
+    );
 }
 
 export default UserInfo;

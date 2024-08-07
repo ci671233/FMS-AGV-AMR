@@ -1,10 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const monitorController = require('../controllers/monitor.controller');
-const auth = require('../middlewares/auth').authenticate;
+const expressWs = require('express-ws');
 
+expressWs(router);
 
-router.get('/', auth, monitorController.getMonitoringData);
+router.ws('/', (ws, req) => {
+  monitorController.monitorUpdates(ws, req);
+});
 
 module.exports = router;
-

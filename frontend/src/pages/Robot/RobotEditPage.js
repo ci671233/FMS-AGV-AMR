@@ -4,18 +4,18 @@ import LogoutButton from '../../components/Common/LogoutButton';
 import UserInfo from '../../components/Common/UserInfo';
 import axios from 'axios';
 
-function MapEditPage() {
-  const [maps, setMaps] = useState([]);
-  const [selectedMap, setSelectedMap] = useState(null);
+function RobotEditPage() {
+  const [robots, setRobots] = useState([]);
+  const [selectedRobot, setSelectedRobot] = useState(null);
   const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [isMonitored, setIsMonitored] = useState(false);
+  const [ip, setIp] = useState('');
+  const [model, setModel] = useState('');
 
   useEffect(() => {
-    fetchMaps();
+    fetchRobots();
   }, []);
 
-  const fetchMaps = async () => {
+  const fetchRobots = async () => {
     const token = localStorage.getItem('token');
 
     if (!token) {
@@ -24,22 +24,22 @@ function MapEditPage() {
     }
 
     try {
-      const response = await axios.get('http://172.30.1.40:5557/map/maps', {
+      const response = await axios.get('http://172.30.1.40:5559/robot/robots', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
-      setMaps(response.data);
+      setRobots(response.data);
     } catch (error) {
-      console.error('Error fetching maps:', error);
+      console.error('Error fetching robots:', error);
     }
   };
 
-  const handleSelectMap = (map) => {
-    setSelectedMap(map);
-    setName(map.name);
-    setDescription(map.description);
-    setIsMonitored(map.isMonitored || false);
+  const handleSelectRobot = (robot) => {
+    setSelectedRobot(robot);
+    setName(robot.name);
+    setIp(robot.ip);
+    setModel(robot.model);
   };
 
   const handleUpdate = async (e) => {
@@ -53,21 +53,21 @@ function MapEditPage() {
     }
 
     try {
-      await axios.put(`http://172.30.1.40:5557/map/update/${selectedMap._id}`, {
+      await axios.put(`http://172.30.1.40:5559/robot/update/${selectedRobot._id}`, {
         name,
-        description,
-        isMonitored
+        ip,
+        model
       }, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
-      alert('Map updated successfully');
-      fetchMaps();
+      alert('Robot updated successfully');
+      fetchRobots();
     } catch (error) {
-      console.error('Error updating map:', error);
-      alert(`Error updating map: ${error.response?.data?.message || error.message}`);
+      console.error('Error updating robot:', error);
+      alert(`Error updating robot: ${error.response?.data?.message || error.message}`);
     }
   };
 
@@ -80,44 +80,44 @@ function MapEditPage() {
       <div style={{ display: 'flex' }}>
         <Navbar />
       </div>
-      <h2 style={{ textAlign: 'center', margin: '20px 0' }}>Map Edit</h2>
+      <h2 style={{ textAlign: 'center', margin: '20px 0' }}>Robot Edit</h2>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <h3>Your Maps</h3>
+        <h3>Your Robots</h3>
         <ul style={{ listStyleType: 'none', padding: 0 }}>
-          {maps.map((map) => (
-            <li key={map._id} onClick={() => handleSelectMap(map)} style={{ padding: '10px', cursor: 'pointer', borderBottom: '1px solid #ccc' }}>
-              {map.name}
+          {robots.map((robot) => (
+            <li key={robot._id} onClick={() => handleSelectRobot(robot)} style={{ padding: '10px', cursor: 'pointer', borderBottom: '1px solid #ccc' }}>
+              {robot.name}
             </li>
           ))}
         </ul>
-        {selectedMap && (
+        {selectedRobot && (
           <form onSubmit={handleUpdate} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <input
               type="text"
-              placeholder="Map Name"
+              placeholder="Robot Name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
               style={{ width: '300px', padding: '10px', margin: '10px 0', borderRadius: '5px', border: '1px solid #ccc' }}
             />
-            <textarea
-              placeholder="Map Description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
+            <input
+              type="text"
+              placeholder="Robot IP"
+              value={ip}
+              onChange={(e) => setIp(e.target.value)}
               required
               style={{ width: '300px', padding: '10px', margin: '10px 0', borderRadius: '5px', border: '1px solid #ccc' }}
             />
-            <label style={{ margin: '10px 0', color: '#333' }}>
-              <input
-                type="checkbox"
-                checked={isMonitored}
-                onChange={(e) => setIsMonitored(e.target.checked)}
-                style={{ marginRight: '10px' }}
-              />
-              Set as monitored map
-            </label>
+            <input
+              type="text"
+              placeholder="Robot Model"
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              required
+              style={{ width: '300px', padding: '10px', margin: '10px 0', borderRadius: '5px', border: '1px solid #ccc' }}
+            />
             <button type="submit" style={{ padding: '10px 20px', margin: '20px 0', borderRadius: '5px', backgroundColor: '#4CAF50', color: '#fff', border: 'none', cursor: 'pointer' }}>
-              Update Map
+              Update Robot
             </button>
           </form>
         )}
@@ -126,6 +126,6 @@ function MapEditPage() {
   );
 }
 
-export default MapEditPage;
+export default RobotEditPage;
 
 

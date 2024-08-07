@@ -9,7 +9,23 @@ function LogoutButton() {
         navigate('/login');
     };
 
-    return <button onClick={handleLogout}>Logout</button>;
+    return (
+        <button 
+            onClick={handleLogout}
+            style={{
+                padding: '10px 20px',
+                margin: '10px 0',
+                borderRadius: '5px',
+                backgroundColor: '#f44336',
+                color: '#fff',
+                border: 'none',
+                cursor: 'pointer'
+            }}
+        >
+            Logout
+        </button>
+    );
 }
 
 export default LogoutButton;
+

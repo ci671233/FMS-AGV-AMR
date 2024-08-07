@@ -1,24 +1,25 @@
-// dotenv 패키지를 로드하고 .env 파일의 환경 변수를 process.env 객체에 로드
 require('dotenv').config();
-
-const express = require('express');     // express 패키지를 로드, 애플리케이션 생성
-const mongoose = require('mongoose');   // mongoose 패키지를 로드
-const cors = require('cors');           // Cors 패키지 로드
-const bodyParser = require('body-parser');  // body-parser 패키지를 로드, 요청 본문을 파싱
-const cookieParser = require('cookie-parser'); // cookie-parser 패키지를 로드, 쿠키 파싱
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const bodyParser = require('body-parser');
+const cookieParser = require('cookie-parser');
+const expressWs = require('express-ws');
 
 // Routes 모듈을 로드, 관련 api
-const accountRoutes = require('./routes/monitor.route');
+const monitorRoutes = require('./routes/monitor.route');
 
 const app = express();
-// .env 파일의 주소 로드
+expressWs(app);
+
 const MONGODB_URI = process.env.MONGODB_URI;
 const allowedOrigins = process.env.FRONT_URI.split(',');
+
+console.log("Allowed Origins:", allowedOrigins);  // 추가된 로그
 
 // CORS 설정
 app.use(cors({
   origin: (origin, callback) => {
-    // 웹 브라우저에서 origin이 없는 경우 (예: Postman, curl)은 허용합니다.
     if (!origin || allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
@@ -34,21 +35,19 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(bodyParser.json()); // 요청 본문 json으로 파싱
-app.use(cookieParser()); // 쿠키 파싱
+app.use(bodyParser.json());
+app.use(cookieParser());
 
 mongoose.connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
-    .then(() => console.log('MongoDB connected'))   // 연결이 성공하면 콘솔에 메시지를 출력합니다.
-    .catch(err => console.log(err));    // 연결이 실패하면 콘솔에 오류 메시지를 출력합니다.
+    .then(() => console.log('MongoDB connected'))
+    .catch(err => console.log(err));
 
-// '/account/...' 경로로 들어오는 요청은 ...Routes 모듈에서
-app.use('/monitoring', accountRoutes);
+app.use('/monitor', monitorRoutes);
 
-// 오류 핸들러
 app.use((err, req, res, next) => {
   console.error('Unexpected error:', err.stack);
   res.status(500).send('Something broke!');
 });
 
-// app 모듈 내보내기
 module.exports = app;
+

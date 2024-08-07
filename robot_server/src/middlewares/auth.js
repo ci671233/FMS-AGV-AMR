@@ -22,13 +22,13 @@ exports.authenticate = async (req, res, next) => {
     }
 
     req.user = response.data;
+    req.user.id = req.user._id; // 추가된 부분
+
     next();
   } catch (error) {
     console.error('Error in authenticate middleware:', error);
     res.status(401).json({ message: 'Invalid token.' });
   }
 };
-
-
 
 

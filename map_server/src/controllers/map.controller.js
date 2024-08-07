@@ -1,9 +1,7 @@
 const mongoose = require('mongoose');
-const axios = require('axios');
-const jwt = require('jsonwebtoken');
-const Map = require('../models/map.model');
-const multer = require('multer'); 
 const { GridFSBucket } = require('mongodb');
+const Map = require('../models/map.model');
+const multer = require('multer');
 
 // GridFS 초기화
 let gfs;
@@ -15,25 +13,14 @@ mongoose.connection.once('open', () => {
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
+// 자신이 보유한 맵 조회
 exports.getMaps = async (req, res) => {
   try {
-    const maps = await Map.find();
+    const maps = await Map.find({ userId: req.user.id });
     res.json(maps);
   } catch (error) {
     console.error(`Error: ${error}`);
     res.status(500).send('Failed to fetch maps');
-  }
-};
-
-exports.saveMap = async (req, res) => {
-  const { name, data } = req.body;
-  const map = new Map({ name, data });
-  try {
-    await map.save();
-    res.send('Map saved');
-  } catch (error) {
-    console.error(`Error: ${error}`);
-    res.status(500).send('Failed to save map');
   }
 };
 
@@ -42,16 +29,16 @@ exports.uploadMap = [
   upload.single('file'),
   async (req, res) => {
     try {
+      console.log('Request user:', req.user); // 사용자 정보 로그 추가
+      console.log('Request body:', req.body);
+      console.log('Request file:', req.file);
+
       const { name, description } = req.body;
       const file = req.file;
 
       if (!file) {
         return res.status(400).json({ message: 'File is required' });
       }
-
-      console.log('Uploading file:', file);
-      console.log('Map name:', name);
-      console.log('Map description:', description);
 
       const uploadStream = gfs.openUploadStream(file.originalname, {
         contentType: file.mimetype
@@ -73,11 +60,11 @@ exports.uploadMap = [
       const map = new Map({
         name,
         description,
-        FileId: fileId
+        FileId: fileId,
+        userId: req.user.id
       });
 
       await map.save();
-      console.log('Map saved to database:', map);
       res.status(201).json({ message: 'Map uploaded successfully', map });
     } catch (error) {
       console.error('Error uploading map:', error);
@@ -86,134 +73,73 @@ exports.uploadMap = [
   }
 ];
 
-// exports.getMaps = async (req, res) => {
-//   try {
-//     const maps = await Map.find();
-//     res.json(maps);
-//   } catch (error) {
-//     res.status(500).json({ message: 'Error fetching maps', error: error.message });
-//   }
-// };
+// 맵 업데이트
+exports.updateMap = async (req, res) => {
+  try {
+    console.log('Request user:', req.user); // 사용자 정보 로그 추가
+    console.log('Request body:', req.body); // 요청 본문 로그 추가
 
-// exports.getMapById = async (req, res) => {
-//   try {
-//     const map = await Map.findById(req.params.id);
-//     if (!map) {
-//       return res.status(404).json({ message: 'Map not found' });
-//     }
-//     res.json(map);
-//   } catch (error) {
-//     res.status(500).json({ message: 'Error fetching map', error: error.message });
-//   }
-// };
+    const { name, description, isMonitored } = req.body;
+    const { id } = req.params;
+    console.log('Map ID:', id); // mapId 로그 추가
+    console.log('User ID:', req.user.id); // userId 로그 추가
 
+    // 모든 맵의 isMonitored 필드를 false로 설정
+    if (isMonitored) {
+      await Map.updateMany({ userId: req.user.id }, { isMonitored: false });
+    }
 
-// exports.getPngMapById = async (req, res) => {
-//   try {
-//     const mapId = req.params.id;
-//     const map = await Map.findById(mapId);
-//     if (!map) {
-//       return res.status(404).json({ message: 'Map not found' });
-//     }
+    // 선택된 맵의 isMonitored 필드를 true로 설정
+    const map = await Map.findOneAndUpdate(
+      { _id: id, userId: req.user.id },
+      { name, description, isMonitored },
+      { new: true, runValidators: true } // runValidators 옵션 추가
+    );
 
-//     const downloadStream = gfs.openDownloadStream(mongoose.Types.ObjectId(map.pngFileId));
+    if (!map) {
+      return res.status(404).json({ message: 'Map not found or not authorized' });
+    }
 
-//     res.set('Content-Type', 'image/png');
-//     downloadStream.pipe(res);
+    res.status(200).json({ message: 'Map updated successfully', map });
+  } catch (error) {
+    console.error('Error updating map:', error);
+    res.status(500).json({ message: 'Error updating map', error: error.message });
+  }
+};
 
-//     downloadStream.on('error', (error) => {
-//       console.error('Error reading map file:', error); // 추가된 로그
-//       res.status(500).json({ message: 'Error reading map file', error: error.message });
-//     });
-//   } catch (error) {
-//     console.error('Error fetching map image:', error); // 추가된 로그
-//     res.status(500).json({ message: 'Error fetching map image', error: error.message });
-//   }
-// };
+// 선택된 맵 조회
+exports.getMonitoredMap = async (req, res) => {
+  try {
+    const monitoredMap = await Map.findOne({ userId: req.user.id, isMonitored: true });
+    if (!monitoredMap) {
+      return res.status(404).json({ message: 'No monitored map found' });
+    }
+    res.status(200).json(monitoredMap);
+  } catch (error) {
+    console.error('Error fetching monitored map:', error);
+    res.status(500).json({ message: 'Error fetching monitored map', error: error.message });
+  }
+};
 
-// // selectMapForMonitoring 함수
-// exports.selectMapForMonitoring = async (req, res) => {
-//   try {
-//     const { mapId, userId } = req.body;
-//     if (!userId) {
-//       return res.status(400).json({ message: 'User ID is missing in request.' });
-//     }
+// 선택된 맵 파일 다운로드
+exports.getMonitoredMapFile = async (req, res) => {
+  try {
+    const monitoredMap = await Map.findOne({ userId: req.user.id, isMonitored: true });
+    if (!monitoredMap) {
+      return res.status(404).json({ message: 'No monitored map found' });
+    }
+    
+    const fileId = monitoredMap.FileId;
+    const downloadStream = gfs.openDownloadStream(fileId);
 
-//     const token = req.headers.authorization.split(' ')[1];
-//     const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
-//     if (decoded.id !== userId) {
-//       return res.status(401).json({ message: 'Unauthorized user.' });
-//     }
+    downloadStream.on('error', (error) => {
+      console.error('Error downloading map file:', error);
+      res.status(500).json({ message: 'Error downloading map file', error: error.message });
+    });
 
-//     // account_server에서 사용자 정보 확인 및 업데이트
-//     const response = await axios.put(`http://localhost:5555/account/user/${userId}`, { selectedMapId: mapId }, {
-//       headers: { Authorization: `Bearer ${token}` }
-//     });
-
-//     if (response.status !== 200) {
-//       return res.status(response.status).json({ message: 'Error updating user with selected map.' });
-//     }
-
-//     res.status(200).json({ message: 'Map selected for monitoring successfully.' });
-//   } catch (error) {
-//     console.error('Error selecting map for monitoring:', error);
-//     res.status(500).json({ message: 'Internal server error' });
-//   }
-// };
-
-
-
-
-// exports.getSelectedMapImage = async (req, res) => {
-//   try {
-//     const userId = req.params.id;
-//     const token = req.headers.authorization.split(' ')[1];
-//     const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
-//     if (decoded.id !== userId) {
-//       return res.status(401).json({ message: 'Unauthorized user.' });
-//     }
-
-//     // account_server에서 사용자 정보 확인
-//     const response = await axios.get(`http://localhost:5555/account/user/${userId}`, {
-//       headers: { Authorization: `Bearer ${token}` }
-//     });
-
-//     if (response.status !== 200) {
-//       return res.status(response.status).json({ message: 'Error fetching user data.' });
-//     }
-
-//     const user = response.data;
-//     const MapId = user.selectedMapId;
-
-//     if (!MapId) {
-//       return res.status(404).json({ message: 'No map selected for monitoring.' });
-//     }
-
-//     // Map 정보 가져오기
-//     const map = await Map.findById(MapId);
-//     if (!map) {
-//       return res.status(404).json({ message: 'Map not found' });
-//     }
-
-//     // Map 이미지 가져오기
-//     const downloadStream = gfs.openDownloadStream(mongoose.Types.ObjectId(map.pngFileId));
-
-//     let imageData = '';
-//     downloadStream.on('data', (chunk) => {
-//       imageData += chunk.toString('base64');
-//     });
-
-//     downloadStream.on('end', () => {
-//       res.status(200).json({ mapImage: `data:image/png;base64,${imageData}` });
-//     });
-
-//     downloadStream.on('error', (error) => {
-//       console.error('Error reading map file:', error);
-//       res.status(500).json({ message: 'Error reading map file', error: error.message });
-//     });
-
-//   } catch (error) {
-//     console.error('Error fetching selected map image:', error);
-//     res.status(500).json({ message: 'Error fetching selected map image', error: error.message });
-//   }
-// };
+    downloadStream.pipe(res);
+  } catch (error) {
+    console.error('Error fetching monitored map file:', error);
+    res.status(500).json({ message: 'Error fetching monitored map file', error: error.message });
+  }
+};

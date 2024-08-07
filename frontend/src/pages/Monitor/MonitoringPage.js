@@ -1,127 +1,89 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import axios from 'axios';
 import Navbar from '../../components/Common/Navbar';
 import LogoutButton from '../../components/Common/LogoutButton';
 import UserInfo from '../../components/Common/UserInfo';
-import axios from 'axios';
 
-function MonitoringPage() {
-  const [mapImage, setMapImage] = useState('');
-  const [robotPositions, setRobotPositions] = useState([]);
-  const [selectedRobot, setSelectedRobot] = useState(null);
-  const [logs, setLogs] = useState([]);
-  const [error, setError] = useState(null);
+const MonitoringPage = () => {
+  const [mapUrl, setMapUrl] = useState(null);
+  const [robots, setRobots] = useState([]);
+  const canvasRef = useRef(null);
 
   useEffect(() => {
-    const fetchMonitoringData = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          setError('No token found. Please log in.');
-          return;
-        }
+    fetchMonitoredMap();
+    const ws = new WebSocket('ws://172.30.1.40:5558'); // WebSocket 서버 주소
 
-        const response = await axios.get('http://localhost:5558/monitoring', {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
-
-        setMapImage(response.data.mapImage);
-        setRobotPositions(response.data.robot_position);
-        setLogs(response.data.log_top);
-      } catch (error) {
-        console.error('Error fetching monitoring data:', error);
-        setError('Failed to fetch monitoring data.');
-      }
+    ws.onmessage = (event) => {
+      const robotPositions = JSON.parse(event.data);
+      setRobots(robotPositions);
     };
 
-    fetchMonitoringData();
+    return () => {
+      ws.close();
+    };
   }, []);
 
-  const handleRobotClick = async (robotId) => {
+  const fetchMonitoredMap = async () => {
+    const token = localStorage.getItem('token');
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setError('No token found. Please log in.');
-        return;
-      }
-
-      const response = await axios.get(`http://localhost:5556/robot/${robotId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+      const response = await axios.get('http://172.30.1.40:5557/map//monitored/file', {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: 'blob',
       });
-
-      setSelectedRobot(response.data);
+      const url = URL.createObjectURL(response.data);
+      setMapUrl(url);
     } catch (error) {
-      console.error('Error fetching robot details:', error);
-      setError('Failed to fetch robot details.');
+      console.error('Error fetching monitored map:', error);
     }
   };
 
+  const drawMapAndRobots = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    const mapImage = new Image();
+    mapImage.src = mapUrl;
+
+    mapImage.onload = () => {
+      canvas.width = mapImage.width;
+      canvas.height = mapImage.height;
+      ctx.drawImage(mapImage, 0, 0);
+
+      robots.forEach((robot) => {
+        const { x, y } = robot.location;
+        ctx.fillStyle = 'red';
+        ctx.beginPath();
+        ctx.arc(x, y, 5, 0, 2 * Math.PI);
+        ctx.fill();
+      });
+    };
+  };
+
+  useEffect(() => {
+    if (mapUrl) {
+      drawMapAndRobots();
+    }
+  }, [mapUrl, robots]);
+
   return (
-    <div style={{ fontFamily: 'Arial, sans-serif', margin: '20px', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ fontFamily: 'Arial, sans-serif', margin: '20px' }}>
       <header style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
         <UserInfo />
         <LogoutButton />
       </header>
-      <div style={{ display: 'flex' }}>
-        <Navbar />
-      </div>
-      <h2 style={{ textAlign: 'center', margin: '20px 0' }}>Monitoring</h2>
-      {error && <p style={{ color: 'red', textAlign: 'center' }}>{error}</p>}
-      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-        <div style={{ flex: 2, marginRight: '20px' }}>
-          {mapImage ? (
-            <div style={{ position: 'relative', width: '100%', paddingBottom: '56.25%', margin: '0 auto' }}>
-              <img src={mapImage.mapImage} alt="Selected Map" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} />
-              {robotPositions.map((robot) => (
-                <div
-                  key={robot.id}
-                  onClick={() => handleRobotClick(robot.id)}
-                  style={{
-                    position: 'absolute',
-                    left: `${robot.x}px`,
-                    top: `${robot.y}px`,
-                    width: '20px',
-                    height: '20px',
-                    backgroundColor: 'red',
-                    borderRadius: '50%',
-                    cursor: 'pointer'
-                  }}
-                />
-              ))}
-            </div>
-          ) : (
-            <p style={{ textAlign: 'center' }}>Loading map...</p>
-          )}
-        </div>
-        <div style={{ flex: 1, marginRight: '20px' }}>
-          <h3 style={{ textAlign: 'center' }}>Robot Details</h3>
-          {selectedRobot ? (
-            <div style={{ textAlign: 'center' }}>
-              <p>ID: {selectedRobot.id}</p>
-              <p>Name: {selectedRobot.name}</p>
-              <p>Status: {selectedRobot.status}</p>
-              <p>Battery: {selectedRobot.battery}%</p>
-              <p>Position: ({selectedRobot.x}, {selectedRobot.y})</p>
-              <p>Model: {selectedRobot.model}</p>
-            </div>
-          ) : (
-            <p style={{ textAlign: 'center' }}>Click on the robot to see details</p>
-          )}
-        </div>
-      </div>
-      <div style={{ marginTop: '20px' }}>
-        <h3 style={{ textAlign: 'center' }}>Logs</h3>
-        <ul style={{ listStyleType: 'none', padding: '0', textAlign: 'center' }}>
-          {logs.map((log) => (
-            <li key={log.id} style={{ margin: '10px 0' }}>{log.message} - {log.timestamp}</li>
-          ))}
-        </ul>
+      <Navbar />
+      <h2 style={{ textAlign: 'center', margin: '20px 0' }}>Monitoring Page</h2>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column' }}>
+        {mapUrl ? (
+          <canvas ref={canvasRef} style={{ border: '1px solid #ccc' }}></canvas>
+        ) : (
+          <p>Loading map...</p>
+        )}
       </div>
     </div>
   );
-}
+};
 
 export default MonitoringPage;
+
