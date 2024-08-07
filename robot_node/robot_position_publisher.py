@@ -6,16 +6,9 @@ import time
 
 def odom_callback(data):
     position = data.pose.pose.position
-    orientation = data.pose.pose.orientation
     robot_data = {
         'x': position.x,
         'y': position.y,
-        'orientation': {
-            'x': orientation.x,
-            'y': orientation.y,
-            'z': orientation.z,
-            'w': orientation.w
-        }
     }
     try:
         ws.send(json.dumps(robot_data))

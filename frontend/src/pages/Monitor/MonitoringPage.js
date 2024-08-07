@@ -26,7 +26,7 @@ const MonitoringPage = () => {
   const fetchMonitoredMap = async () => {
     const token = localStorage.getItem('token');
     try {
-      const response = await axios.get('http://172.30.1.40:5557/map//monitored/file', {
+      const response = await axios.get('http://172.30.1.40:5557/map/monitored/file', {
         headers: { Authorization: `Bearer ${token}` },
         responseType: 'blob',
       });
@@ -86,4 +86,5 @@ const MonitoringPage = () => {
 };
 
 export default MonitoringPage;
+
 

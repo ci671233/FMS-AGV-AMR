@@ -9,7 +9,6 @@ import MapUploadPage from './pages/Map/MapUploadPage';
 import MapEditPage from './pages/Map/MapEditPage';
 import RobotRegisterPage from './pages/Robot/RobotRegisterPage';
 import RobotEditPage from './pages/Robot/RobotEditPage';
-import LogPage from './pages/Log/LogPage';
 
 function App() {
     return (
@@ -24,7 +23,6 @@ function App() {
                 <Route path="/map_edit" element={<MapEditPage />} />
                 <Route path="/robot_register" element={<RobotRegisterPage />} />
                 <Route path="/robot_edit" element={<RobotEditPage />} />
-                <Route path="/logs" element={<LogPage />} />
                 <Route path="/" element={<LoginPage />} /> {/* 기본 경로는 로그인 페이지로 설정 */}
             </Routes>
         </Router>

@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const Robot = require('../models/robot.model');
 const axios = require('axios');
+const { GridFSBucket } = require('mongodb');
 
 // 자신이 보유한 로봇 조회
 exports.getRobots = async (req, res) => {
@@ -62,28 +63,55 @@ exports.updateRobot = async (req, res) => {
 };
 
 // 로봇에게 맵 전송
-exports.sendMapToRobot = async (req, res) => {
+exports.sendMapToRobots = async (req, res) => {
   try {
-    const { robotId } = req.body;
+    console.log(`Sending map to all robots`);
 
-    // 로봇 정보 조회
-    const robot = await Robot.findById(robotId);
-    if (!robot) {
-      return res.status(404).json({ message: 'Robot not found' });
-    }
-
-    // 선택된 맵 정보 조회
-    const response = await axios.get(`http://172.30.1.40:5557/map/monitored`, {
+    // 맵 서버에서 선택된 맵 정보 조회
+    const mapResponse = await axios.get('http://172.30.1.40:5557/map/monitored', {
       headers: { Authorization: req.headers.authorization }
     });
-    const map = response.data;
+    const monitoredMap = mapResponse.data;
 
-    // 로봇에게 맵 URL 전송
-    const mapUrl = `http://172.30.1.40:5557/map/file/${map.FileId}`;
-    await axios.post(`http://${robot.ip}:5000/receive_map`, { mapUrl });
-    res.status(200).json({ message: 'Map sent to robot successfully' });
+    if (!monitoredMap) {
+      return res.status(404).json({ message: 'No monitored map found' });
+    }
+
+    console.log(`Monitored map ID: ${monitoredMap._id}`);
+
+    // 맵 파일 다운로드 URL
+    const fileUrl = `http://172.30.1.40:5557/map/file/${monitoredMap.FileId}`;
+
+    // 맵 파일 다운로드
+    const mapFileResponse = await axios.get(fileUrl, {
+      responseType: 'arraybuffer',
+      headers: { Authorization: req.headers.authorization }
+    });
+
+    if (mapFileResponse.status !== 200) {
+      throw new Error('Failed to download map file');
+    }
+
+    const mapData = Buffer.from(mapFileResponse.data, 'binary').toString('base64');
+    console.log(`Map data size: ${mapData.length}`);
+
+    // 모든 로봇 정보 조회
+    const robots = await Robot.find({ userId: req.user.id });
+    for (const robot of robots) {
+      try {
+        // 로봇에게 맵 데이터 전송
+        await axios.post(`http://${robot.ip}:5000/receive_map`, {
+          map_data: mapData
+        });
+        console.log(`Map sent to robot at ${robot.ip}`);
+      } catch (error) {
+        console.error(`Error sending map to robot at ${robot.ip}:`, error.message);
+      }
+    }
+
+    res.status(200).json({ message: 'Map sent to all robots successfully' });
   } catch (error) {
-    console.error('Error sending map to robot:', error);
-    res.status(500).json({ message: 'Error sending map to robot', error: error.message });
+    console.error('Error sending map to robots:', error);
+    res.status(500).json({ message: 'Error sending map to robots', error: error.message });
   }
 };

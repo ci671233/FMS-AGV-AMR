@@ -143,3 +143,20 @@ exports.getMonitoredMapFile = async (req, res) => {
     res.status(500).json({ message: 'Error fetching monitored map file', error: error.message });
   }
 };
+
+exports.getMonitoredMapFile = async (req, res) => {
+  try {
+    const fileId = req.params.id;
+    const downloadStream = gfs.openDownloadStream(mongoose.Types.ObjectId(fileId));
+
+    downloadStream.on('error', (error) => {
+      console.error('Error downloading map file:', error);
+      res.status(500).json({ message: 'Error downloading map file', error: error.message });
+    });
+
+    downloadStream.pipe(res);
+  } catch (error) {
+    console.error('Error fetching monitored map file:', error);
+    res.status(500).json({ message: 'Error fetching monitored map file', error: error.message });
+  }
+};
