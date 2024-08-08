@@ -11,7 +11,7 @@ const MonitoringPage = () => {
 
   useEffect(() => {
     fetchMonitoredMap();
-    const ws = new WebSocket('ws://172.30.1.40:5558'); // WebSocket 서버 주소
+    const ws = new WebSocket('ws://172.30.1.40:5050'); // WebSocket 서버 주소를 변경
 
     ws.onmessage = (event) => {
       const robotPositions = JSON.parse(event.data);
@@ -51,7 +51,7 @@ const MonitoringPage = () => {
       ctx.drawImage(mapImage, 0, 0);
 
       robots.forEach((robot) => {
-        const { x, y } = robot.location;
+        const { x, y } = robot;
         ctx.fillStyle = 'red';
         ctx.beginPath();
         ctx.arc(x, y, 5, 0, 2 * Math.PI);
@@ -86,5 +86,3 @@ const MonitoringPage = () => {
 };
 
 export default MonitoringPage;
-
-

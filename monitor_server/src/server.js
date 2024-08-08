@@ -1,39 +1,29 @@
 require('dotenv').config();
 const app = require('./app');
+const express = require('express');
+const WebSocket = require('ws');
 
-const PORT = process.env.PORT || 5558;
+const PORT = process.env.PORT;
+const WS_PORT = 5050; // WebSocket 서버 포트
 
-const server = app.listen(PORT, () => {
+app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
 
-const WebSocket = require('ws');
-const wss = new WebSocket.Server({ server });
-
-let clients = [];
+// WebSocket 서버 설정
+const wss = new WebSocket.Server({ port: WS_PORT });
 
 wss.on('connection', function connection(ws) {
-  clients.push(ws);
   console.log('WebSocket connected');
 
-  ws.on('message', (message) => {
-    console.log('Received message from client:', message);
+  ws.on('message', function message(data) {
+    console.log('received: %s', data);
+    // 여기서 로봇의 위치 데이터를 처리합니다.
   });
 
   ws.on('close', () => {
-    clients = clients.filter(client => client !== ws);
     console.log('WebSocket disconnected');
   });
 });
 
-function broadcastPosition(position) {
-  clients.forEach(client => {
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(JSON.stringify(position));
-    }
-  });
-}
-
-module.exports = {
-  broadcastPosition
-};
+module.exports = { wss };
