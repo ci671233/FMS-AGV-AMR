@@ -2,6 +2,15 @@ const mongoose = require('mongoose');
 const Robot = require('../models/robot.model');
 const axios = require('axios');
 const { GridFSBucket } = require('mongodb');
+const WebSocket = require('ws');
+const Map = require('../models/map.model');
+const rosnodejs = require('rosnodejs');
+
+let gfs;
+mongoose.connection.once('open', () => {
+  gfs = new GridFSBucket(mongoose.connection.db, { bucketName: 'maps' });
+});
+
 
 // 자신이 보유한 로봇 조회
 exports.getRobots = async (req, res) => {
@@ -65,13 +74,18 @@ exports.updateRobot = async (req, res) => {
 // 로봇에게 맵 전송
 exports.sendMapToRobots = async (req, res) => {
   try {
-    console.log(`Sending map to all robots`);
+    // ROS 노드 초기화
+    await rosnodejs.initNode('/map_publisher_node');
+    const nh = rosnodejs.nh;
 
-    // 맵 서버에서 선택된 맵 정보 조회
-    const mapResponse = await axios.get('http://172.30.1.40:5557/map/monitored', {
+    const { userId } = req.user;
+
+    // 선택된 맵 정보 조회
+    const monitoredMapResponse = await axios.get('http://172.30.1.40:5557/map/monitored', {
       headers: { Authorization: req.headers.authorization }
     });
-    const monitoredMap = mapResponse.data;
+
+    const monitoredMap = monitoredMapResponse.data;
 
     if (!monitoredMap) {
       return res.status(404).json({ message: 'No monitored map found' });
@@ -79,37 +93,27 @@ exports.sendMapToRobots = async (req, res) => {
 
     console.log(`Monitored map ID: ${monitoredMap._id}`);
 
-    // 맵 파일 다운로드 URL
-    const fileUrl = `http://172.30.1.40:5557/map/file/${monitoredMap.FileId}`;
-
-    // 맵 파일 다운로드
-    const mapFileResponse = await axios.get(fileUrl, {
+    // 맵 파일 스트림 생성
+    const response = await axios.get(`http://172.30.1.40:5557/map/file/${monitoredMap.FileId}`, {
       responseType: 'arraybuffer',
       headers: { Authorization: req.headers.authorization }
     });
 
-    if (mapFileResponse.status !== 200) {
-      throw new Error('Failed to download map file');
-    }
-
-    const mapData = Buffer.from(mapFileResponse.data, 'binary').toString('base64');
+    const mapData = Buffer.from(response.data, 'binary');
     console.log(`Map data size: ${mapData.length}`);
 
-    // 모든 로봇 정보 조회
-    const robots = await Robot.find({ userId: req.user.id });
-    for (const robot of robots) {
-      try {
-        // 로봇에게 맵 데이터 전송
-        await axios.post(`http://${robot.ip}:5000/receive_map`, {
-          map_data: mapData
-        });
-        console.log(`Map sent to robot at ${robot.ip}`);
-      } catch (error) {
-        console.error(`Error sending map to robot at ${robot.ip}:`, error.message);
-      }
-    }
+    // ROS 메시지 생성
+    const std_msgs = rosnodejs.require('std_msgs').msg;
+    const mapTopic = nh.advertise('/map_topic', std_msgs.String);
+    const mapMsg = new std_msgs.String({
+      data: mapData.toString('base64')
+    });
 
-    res.status(200).json({ message: 'Map sent to all robots successfully' });
+    // ROS 토픽으로 맵 데이터 퍼블리시
+    mapTopic.publish(mapMsg);
+    console.log('Map data published to /map_topic');
+    
+    res.status(200).json({ message: 'Map sent to robots successfully' });
   } catch (error) {
     console.error('Error sending map to robots:', error);
     res.status(500).json({ message: 'Error sending map to robots', error: error.message });

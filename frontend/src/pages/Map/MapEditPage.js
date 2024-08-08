@@ -86,7 +86,7 @@ function MapEditPage() {
           'Content-Type': 'application/json'
         }
       });
-      alert('Map sent to all robots successfully');
+      alert('Map sent to robots successfully');
     } catch (error) {
       console.error('Error sending map to robots:', error);
       alert(`Error sending map to robots: ${error.response?.data?.message || error.message}`);
@@ -142,7 +142,7 @@ function MapEditPage() {
               Update Map
             </button>
             <button type="button" onClick={handleSendMap} style={{ padding: '10px 20px', margin: '10px 0', borderRadius: '5px', backgroundColor: '#2196F3', color: '#fff', border: 'none', cursor: 'pointer' }}>
-              Send Map to Robot
+              Send Map to Robots
             </button>
           </form>
         )}
@@ -152,5 +152,6 @@ function MapEditPage() {
 }
 
 export default MapEditPage;
+
 
 

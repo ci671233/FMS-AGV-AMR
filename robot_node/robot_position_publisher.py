@@ -6,9 +6,16 @@ import time
 
 def odom_callback(data):
     position = data.pose.pose.position
+    orientation = data.pose.pose.orientation
     robot_data = {
         'x': position.x,
         'y': position.y,
+        'orientation': {
+            'x': orientation.x,
+            'y': orientation.y,
+            'z': orientation.z,
+            'w': orientation.w
+        }
     }
     try:
         ws.send(json.dumps(robot_data))
@@ -21,7 +28,7 @@ def connect_websocket():
     while True:
         try:
             ws = websocket.WebSocket()
-            ws.connect("ws://172.30.1.40:5558")  # 실제 모니터링 서버의 IP 주소로 대체하세요
+            ws.connect("ws://172.30.1.40:9090")  # 실제 모니터링 서버의 IP 주소로 대체하세요
             rospy.loginfo("WebSocket connected")
             break
         except Exception as e:
@@ -33,3 +40,4 @@ if __name__ == '__main__':
     connect_websocket()
     rospy.Subscriber('/odom', Odometry, odom_callback)
     rospy.spin()
+
