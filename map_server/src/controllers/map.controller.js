@@ -3,6 +3,9 @@ const { GridFSBucket } = require('mongodb');
 const Map = require('../models/map.model');
 const multer = require('multer');
 
+// Mongoose 설정
+mongoose.set('useFindAndModify', false);
+
 // GridFS 초기화
 let gfs;
 mongoose.connection.once('open', () => {
@@ -61,6 +64,7 @@ exports.uploadMap = [
         name,
         description,
         FileId: fileId,
+        filename: file.originalname, // filename 필드 설정
         userId: req.user.id
       });
 
@@ -123,6 +127,29 @@ exports.getMonitoredMap = async (req, res) => {
 
 // 선택된 맵 파일 다운로드
 exports.getMonitoredMapFile = async (req, res) => {
+  try {
+    const monitoredMap = await Map.findOne({ userId: req.user.id, isMonitored: true });
+    if (!monitoredMap) {
+      return res.status(404).json({ message: 'No monitored map found' });
+    }
+    
+    const fileId = monitoredMap.FileId;
+    const downloadStream = gfs.openDownloadStream(fileId);
+
+    downloadStream.on('error', (error) => {
+      console.error('Error downloading map file:', error);
+      res.status(500).json({ message: 'Error downloading map file', error: error.message });
+    });
+
+    downloadStream.pipe(res);
+  } catch (error) {
+    console.error('Error fetching monitored map file:', error);
+    res.status(500).json({ message: 'Error fetching monitored map file', error: error.message });
+  }
+};
+
+// 현재 모니터링 중인 맵 파일 다운로드
+exports.getCurrentMonitoredMapFile = async (req, res) => {
   try {
     const monitoredMap = await Map.findOne({ userId: req.user.id, isMonitored: true });
     if (!monitoredMap) {

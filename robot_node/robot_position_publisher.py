@@ -28,7 +28,7 @@ def connect_websocket():
     while True:
         try:
             ws = websocket.WebSocket()
-            ws.connect("ws://172.30.1.40:9090")  # 실제 모니터링 서버의 IP 주소로 대체하세요
+            ws.connect("ws://172.30.1.40:5558")  # 모니터링 서버의 IP 주소로 대체
             rospy.loginfo("WebSocket connected")
             break
         except Exception as e:

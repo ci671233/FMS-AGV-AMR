@@ -102,11 +102,17 @@ exports.sendMapToRobots = async (req, res) => {
     const mapData = Buffer.from(response.data, 'binary');
     console.log(`Map data size: ${mapData.length}`);
 
+    // 파일 확장자 추출
+    const fileExtension = monitoredMap.filename.split('.').pop();
+
     // ROS 메시지 생성
     const std_msgs = rosnodejs.require('std_msgs').msg;
     const mapTopic = nh.advertise('/map_topic', std_msgs.String);
     const mapMsg = new std_msgs.String({
-      data: mapData.toString('base64')
+      data: JSON.stringify({
+        map_data: mapData.toString('base64'),
+        file_extension: fileExtension
+      })
     });
 
     // ROS 토픽으로 맵 데이터 퍼블리시

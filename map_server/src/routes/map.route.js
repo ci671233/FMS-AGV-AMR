@@ -8,6 +8,9 @@ router.post('/upload', auth, mapController.uploadMap);
 router.put('/update/:id', auth, mapController.updateMap);
 router.get('/monitored', auth, mapController.getMonitoredMap);
 router.get('/file/:id', auth, mapController.getMonitoredMapFile);
+router.get('/monitored/file', auth, mapController.getCurrentMonitoredMapFile);
 
 module.exports = router;
+
+
 

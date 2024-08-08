@@ -4,13 +4,11 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
-const expressWs = require('express-ws');
 
 // Routes 모듈을 로드, 관련 api
 const monitorRoutes = require('./routes/monitor.route');
 
 const app = express();
-expressWs(app);
 
 const MONGODB_URI = process.env.MONGODB_URI;
 const allowedOrigins = process.env.FRONT_URI.split(',');
@@ -50,4 +48,3 @@ app.use((err, req, res, next) => {
 });
 
 module.exports = app;
-
